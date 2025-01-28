@@ -1,7 +1,7 @@
-# TabarestanBot: A Modular Telegram Bot Built with FastAPI
-![TabarestanBot Logo](thumb.png)
+# TabarSkillBot: A Modular Telegram Bot Built with FastAPI
+![TabarSkillBot Logo](thumb.png)
 
-TabarestanBot is a Telegram bot designed to enhance the university experience by providing students with streamlined access to essential tools, resources, and interactive features. Built with Python, FastAPI, and the python-telegram-bot library, this bot follows a modular, object-oriented architecture to ensure scalability, maintainability, and ease of development.
+TabarSkillBot is a Telegram bot designed to enhance the university experience by providing students with streamlined access to essential tools, resources, and interactive features. Built with Python, FastAPI, and the python-telegram-bot library, this bot follows a modular, object-oriented architecture to ensure scalability, maintainability, and ease of development.
 
 ## Features
 
