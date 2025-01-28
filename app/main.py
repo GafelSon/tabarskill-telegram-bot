@@ -65,7 +65,7 @@ async def health_checker() -> Dict[str, Any]:
             },
             "contributors": ["gafelson"],
             "version": "0.1.0",
-            "license": "MIT",
+            "license": "Proprietary",
             "documentation": "https://docs.tabarskill.ir",
             "support": "support@tabarskill.ir",
             "repository": "https://github.com/gafelson/TabarSkill"
