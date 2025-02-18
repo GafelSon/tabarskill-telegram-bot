@@ -1,7 +1,7 @@
 # app/bot/init.py
 
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, Application, ContextTypes
-from app.bot.handlers import start_handler, help_handler, bio_handler, echo
+from app.bot.handlers import start_handler, help_handler, bio_handler, echo, tokens_handler
 from telegram import Update
 from app.config import Config
 from app.database import Database
@@ -23,7 +23,8 @@ class TelegramBot:
         
         self.app.add_handler(CommandHandler("start", start_handler))
         self.app.add_handler(CommandHandler("help", help_handler))
-        self.app.add_handler(CommandHandler("bio", bio_handler))  # Add this line
+        self.app.add_handler(CommandHandler("bio", bio_handler))
+        self.app.add_handler(CommandHandler("tokens", tokens_handler)) # new one
         self.app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
     
     async def start(self):

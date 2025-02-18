@@ -90,7 +90,7 @@ async def get_all_users():
             
             return [{
                 "id": user.id,
-                "telegram_id": user.t_id,
+                "telegram_id": user.id,
                 "username": user.username,
                 "first_name": user.first_name,
                 "last_name": user.last_name,

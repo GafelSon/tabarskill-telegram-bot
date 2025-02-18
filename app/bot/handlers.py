@@ -1,8 +1,9 @@
 # app/bot/handlers.py
 
-from telegram import Update
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from app.bot.context import DatabaseContext
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.database.models import User
 from datetime import datetime
@@ -21,7 +22,7 @@ async def start_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 
     async with context.db.session() as session:
         result = await session.execute(
-            select(User).where(User.t_id == user.id)
+            select(User).where(User.telegram_id == user.id)
         )
         db_user = result.scalar_one_or_none()
 
@@ -31,26 +32,34 @@ async def start_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
 
         if not db_user:
             db_user = User(
-                t_id=user.id,
+                telegram_id=user.id,
                 username=user.username,
                 first_name=user.first_name,
                 last_name=user.last_name,
-                profile_id=photo_id
+                profile=photo_id
             )
             session.add(db_user)
             welcome_message = (
-                f"👋 Welcome {user.first_name}!\n\n"
-                f"I'm glad to have you here. You can use /help to see available commands."
+                f"✨ خوش آمدید {user.first_name} عزیز ✨\n\n"
+                f"🎓 به ربات هوشمند دانشگاه ملی مهارت استان مازندران خوش آمدید!\n\n"
+                f"🎯 برای مشاهده امکانات ربات دستور /help را ارسال کنید\n"
+                f"💎 برای مشاهده پروفایل خود دستور /bio را ارسال کنید\n"
+                f"📊 برای مشاهده اعتبار باقیمانده دستور /tokens را ارسال کنید\n\n"
+                f"🌟 با آرزوی موفقیت برای شما 🌟"
             )
         else:
             db_user.last_interaction = datetime.utcnow()
             db_user.username = user.username
             db_user.first_name = user.first_name
             db_user.last_name = user.last_name
-            db_user.profile_id = photo_id
+            db_user.profile = photo_id
             welcome_message = (
-                f"👋 Welcome back {user.first_name}!\n\n"
-                f"Good to see you again. Need help? Use /help command."
+                f"✨ به به! چه کسی اینجاست! {user.first_name} عزیز ✨\n\n"
+                f"🌸 خوشحالیم که دوباره به ربات دانشگاه ملی مهارت مازندران برگشتید\n\n"
+                f"🎯 برای مشاهده امکانات: /help\n"
+                f"👤 مشاهده پروفایل: /bio\n"
+                f"💎 موجودی اعتبار: /tokens\n\n"
+                f"🍀 روزگارتون پر از موفقیت 🌟"
             )
         await session.commit()
 
@@ -65,7 +74,7 @@ async def bio_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
 
     async with context.db.session() as session:
         result = await session.execute(
-            select(User).where(User.t_id == user.id)
+            select(User).where(User.telegram_id == user.id)
         )
         db_user = result.scalar_one_or_none()
 
@@ -74,31 +83,110 @@ async def bio_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
             return
 
         bio_text = (
-            f"👤 *Your Profile Information:*\n\n"
-            f"*ID:* `{db_user.t_id}`\n"
-            f"*Username:* @{db_user.username or 'Not set'}\n"
-            f"*First Name:* {db_user.first_name or 'Not set'}\n"
-            f"*Last Name:* {db_user.last_name or 'Not set'}\n"
-            f"*Joined:* {db_user.created_at.strftime('%Y-%m-%d %H:%M:%S')}\n"
-            f"*Last Active:* {db_user.last_interaction.strftime('%Y-%m-%d %H:%M:%S')}"
+f"""
+✨ *به پروفایل تبرسکیل‌بات خوش آمدید* ✨\n
+    🔸 *نام کاربری*: @{db_user.username or 'تنظیم نشده'}\n
+    👤 *اطلاعات شخصی:*
+        🧩 *نام:* {db_user.first_name or '—'}
+        🧩 *نام خانوادگی:* {db_user.last_name or '—'}
+        📱 *شماره تماس:* {db_user.phone or '—'}\n\n
+    🎓 *اطلاعات تحصیلی:*
+        🔢 *شماره دانشجویی:* {db_user.university_id or '—'}
+        🏛️ *دانشکده:* {db_user.faculty or '—'}
+        📚 *رشته تحصیلی:* {db_user.major or '—'}
+        🗓️ *سال ورود:* {db_user.entry_year or '—'}\n\n
+    💎 *وضعیت اشتراک:* {'✨ ویژه' if db_user.is_premium else '🔹 رایگان'}
+    📅 *تاریخ ثبت‌نام:* {db_user.created_at.strftime('%y/%m/%d %H:%M')}
+    ⏱️ *آخرین فعالیت:* {db_user.last_interaction.strftime('%y/%m/%d %H:%M')}\n
+"""
         )
 
-        if db_user.profile_id:
-            # Send profile photo with caption
+        if db_user.profile:
+            # Create inline keyboard with buttons
+            keyboard = [
+                
+                [InlineKeyboardButton("✏️ ویرایش اطلاعات", callback_data="edit_profile")],
+                [InlineKeyboardButton("💎 وضعیت اشتراک", callback_data="stats")],
+                [InlineKeyboardButton("📢 دعوت دوستان", callback_data="edit_profile")],
+                [InlineKeyboardButton("❓ پشتیبانی", callback_data="stats")],
+                
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
             await update.message.reply_photo(
-                photo=db_user.profile_id,
+                photo=db_user.profile,
                 caption=bio_text,
-                parse_mode='Markdown'
+                parse_mode='MarkdownV2',
+                reply_markup=reply_markup
             )
         else:
-            # Send text only if no profile photo
-            await update.message.reply_text(bio_text, parse_mode='Markdown')
+            await update.message.reply_text(bio_text, parse_mode='MarkdownV2')
             
         logger.info(f"Bio requested by user: {user.id}")
 
 async def help_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text("Help command not implemented yet.")
 
+async def tokens_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user = update.effective_user
+    if user is None:
+        logger.error("No effective user in the update")
+        return
+
+    async with context.db.session() as session:
+        result = await session.execute(
+            select(User).where(User.telegram_id == user.id)
+        )
+        db_user = result.scalar_one_or_none()
+
+        if not db_user:
+            await update.message.reply_text("⚠️ لطفا ابتدا دستور /start را ارسال کنید")
+            return
+
+        # Escape the decimal
+        tokens_message = (
+            f"""💰 *موجودی فعلی شما:* {str(db_user.tokens)} *توکن* ✨\n\n"""
+            f"""💎 برای خرید توکن بیشتر از دستور /premium استفاده کنید"""
+        )
+        
+        await update.message.reply_text(tokens_message, parse_mode='Markdown')
+
+def check_tokens(cost: float = 0.75):
+    def decorator(func):
+        async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE, *args, **kwargs):
+            user = update.effective_user
+            if user is None:
+                logger.error("No effective user in the update")
+                return
+
+            async with context.db.session() as session:
+                result = await session.execute(
+                    select(User).where(User.telegram_id == user.id)
+                )
+                db_user = result.scalar_one_or_none()
+
+                if not db_user:
+                    await update.message.reply_text("Please use /start first!")
+                    return
+
+                if db_user.tokens < cost:
+                    await update.message.reply_text(
+                        f"⚠️ *موجودی ناکافی!*\n\n"
+                        f"💰 *اعتبار مورد نیاز:* {str(cost)} *توکن*\n"
+                        f"👛 *موجودی شما:* {str(db_user.tokens)} *توکن*\n\n"
+                        f"✨ برای افزایش اعتبار و استفاده از امکانات ویژه:\n"
+                        f"🎁 دستور /premium را ارسال کنید",
+                        parse_mode='Markdown'
+                    )
+                    return
+
+                db_user.tokens -= cost
+                await session.commit()
+                return await func(update, context, *args, **kwargs)
+
+        return wrapper
+    return decorator
+
+@check_tokens(10)
 async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """Echo the user message."""
     if update.message and update.message.text:
