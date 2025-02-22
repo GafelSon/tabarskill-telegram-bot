@@ -3,24 +3,29 @@ from sqlalchemy import (
     Integer,
     String,
     Boolean,
-    DateTime
+    DateTime,
+    ForeignKey,
+    DECIMAL
 )
 from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.types import Enum as SQLEnum
 from datetime import datetime
 import uuid
+from enum import Enum
 
 Base = declarative_base()
 
 class User(Base):
-    __tablename__ = 'students'
+    __tablename__ = 'users'
 
-    id = Column(Integer, primary_key=True)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)  # Changed to UUID
     telegram_id = Column(Integer, unique=True, nullable=False)
     university_id = Column(String, nullable=True)
     first_name = Column(String, nullable=True)
     last_name = Column(String, nullable=True)
-    username = Column(String, unique=True, nullable=False)
+    username = Column(String, unique=True, nullable=True)
     profile = Column(String, nullable=True)
     phone = Column(String, nullable=True)
     faculty = Column(String, nullable=True)
