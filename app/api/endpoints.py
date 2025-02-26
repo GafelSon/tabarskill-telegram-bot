@@ -1,21 +1,24 @@
-import logging
-import os
-from datetime import datetime
+# app.api.endpoints.py
 from typing import Any, Dict, List
+from datetime import datetime
 from uuid import UUID
 
-import aiofiles
 from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import JSONResponse
 from sqlalchemy import select
+import aiofiles
 
 from app.database.models import User
 from app.main import bot
 
+import logging
+import os
+
 logger = logging.getLogger(__name__)
+
 router = APIRouter()
 
-
+# Health Check
 @router.get("/health")
 async def get_health_status() -> Dict[str, Any]:
     try:
@@ -42,29 +45,29 @@ async def get_health_status() -> Dict[str, Any]:
             status_code=503,
             content={
                 "status": "error",
-                "message": "Service unavailable",
+                "message": "System: Service unavailable",
                 "error": str(e),
             },
         )
 
 
+# Webhook Endpoint
 @router.post("/webhook")
 async def handle_telegram_webhook(request: Request) -> Dict[str, str]:
     try:
         update_data = await request.json()
-        logger.info(f"Received webhook update: {update_data}")
-
+        logger.info(f"System: Received webhook update: {update_data}")
         await bot.app.process_update(update_data)
-
         return {"status": "ok"}
+
     except ValueError as e:
-        logger.error(f"Invalid update data received: {str(e)}")
+        logger.error(f"System: Invalid update data received: {str(e)}")
         raise HTTPException(status_code=400, detail="Invalid update data")
     except Exception as e:
-        logger.error(f"Error processing webhook: {str(e)}")
+        logger.error(f"System: Error processing webhook: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-
+# User Endpoints
 @router.get("/users", response_model=List[Dict[str, Any]])
 async def get_list_users():
     try:
@@ -91,23 +94,21 @@ async def get_list_users():
                 }
                 for user in users
             ]
-
     except Exception as e:
-        logger.error(f"Error fetching users: {str(e)}")
+        logger.error(f"System: Error fetching users: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# User Endpoints for Premium
 @router.post("/users/{user_id}/premium")
 async def upgrade_user_to_premium(user_id: UUID):
     try:
         async with bot.db.session() as session:
-            # Find the user
-            result = await session.execute(
-                select(User).where(User.id == user_id)
-            )
+            result = await session.execute(select(User).where(User.id == user_id))
             user = result.scalar_one_or_none()
             if not user:
-                raise HTTPException(status_code=404, detail="User not found")
+                raise HTTPException(status_code=404, detail="System: User not found")
+
             user.is_premium = True
             await session.commit()
             return {
@@ -121,29 +122,26 @@ async def upgrade_user_to_premium(user_id: UUID):
                 },
             }
     except Exception as e:
-        logger.error(f"Error updating user premium status: {str(e)}")
+        logger.error(f"System: Error updating user premium status: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# Broadcast Endpoint
 @router.post("/broadcast")
 async def send_broadcast_message(
     message: str = Form(...), image: UploadFile = File(None)
 ):
     try:
-        # Get all users
         async with bot.db.session() as session:
             result = await session.execute(select(User))
             users = result.scalars().all()
-
         image_path = None
         if image:
             upload_dir = "database/lib"
             os.makedirs(upload_dir, exist_ok=True)
-
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             filename = f"{timestamp}_{image.filename}"
             image_path = os.path.join(upload_dir, filename)
-
             async with aiofiles.open(image_path, "wb") as out_file:
                 content = await image.read()
                 await out_file.write(content)
