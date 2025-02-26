@@ -1,4 +1,4 @@
-from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove
+# app.bot.handlers.options.edit_profile.py
 from telegram.ext import (
     ContextTypes,
     ConversationHandler,
@@ -7,8 +7,12 @@ from telegram.ext import (
     CallbackQueryHandler,
     filters,
 )
+from telegram import Update, ReplyKeyboardMarkup, ReplyKeyboardRemove
 from sqlalchemy import select
+
+from app.bot.handlers.bio import bio_handler
 from app.database.models import User
+
 import logging
 
 logger = logging.getLogger(__name__)
@@ -54,7 +58,6 @@ FIELDS = {
 }
 
 async def start_profile_edit(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    """Start the profile editing process."""
     await update.callback_query.answer()
     context.user_data['edit_message'] = await update.callback_query.message.reply_text(
         QUESTIONS[FIRST_NAME],
@@ -63,6 +66,7 @@ async def start_profile_edit(update: Update, context: ContextTypes.DEFAULT_TYPE)
     context.user_data['current_state'] = FIRST_NAME
     return FIRST_NAME
 
+# Define faculties and majors /todo: make rl data
 FACULTIES = [
     "دانشکده امام محمد باقر (ع) ساری شماره۱",
     "دانشکده امام محمد باقر (ع) ساری شماره۲",
@@ -70,6 +74,7 @@ FACULTIES = [
     "دانشکده های دیگر استان"
 ]
 
+# Define majors based on faculties /todo: make rl data
 MAJORS = {
     "دانشکده امام محمد باقر (ع) ساری شماره۱": ["کامپیوتر", "برق", "تاسیسات", "معماری", "عمران"],
     "دانشکده امام محمد باقر (ع) ساری شماره۲": ["کامپیوتر", "برق", "تاسیسات", "معماری", "عمران"],
@@ -77,6 +82,7 @@ MAJORS = {
     "دانشکده های دیگر استان": ["کامپیوتر", "برق", "تاسیسات", "معماری", "عمران"],
 }
 
+# Define entry years /todo: make rl data
 ENTRY_YEARS = [str(year) for year in range(1400, 1405)]
 
 def get_selection_keyboard(options, columns=2):
@@ -102,7 +108,7 @@ async def handle_input(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
         if current_state > FIRST_NAME:
             next_state = current_state - 1
             reply_markup = get_keyboard()
-            # Special handling for selection fields
+
             if next_state == FACULTY:
                 reply_markup = get_selection_keyboard(FACULTIES)
             elif next_state == MAJOR and 'faculty' in context.user_data:
@@ -129,7 +135,6 @@ async def handle_input(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
             context.user_data[field_name] = text
         next_state = current_state + 1
 
-    # Check if we're done
     if next_state > PHOTO:
         return await save_profile(update, context)
 
@@ -176,21 +181,22 @@ async def save_profile(update: Update, context: ContextTypes.DEFAULT_TYPE) -> in
             select(User).where(User.telegram_id == update.effective_user.id)
         )
         user = result.scalar_one_or_none()
-        
         if user:
             for key, value in context.user_data.items():
                 if value is not None and key in FIELDS.values():
                     setattr(user, key, value)
             await session.commit()
-
     await update.message.reply_text(
         "🎊 دانشجوی گرامی پروفایل شما بروزرسانی گردید.",
         reply_markup=ReplyKeyboardRemove()
     )
+
+    # Start bio handler
+    await bio_handler(update, context)
+
     return ConversationHandler.END
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
-    # Delete user messages
     if 'user_messages' in context.user_data:
         for message in context.user_data['user_messages']:
             try:

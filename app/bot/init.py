@@ -1,5 +1,4 @@
-import logging
-
+# app.bot.init
 from telegram.ext import (
     Application,
     ApplicationBuilder,
@@ -7,10 +6,12 @@ from telegram.ext import (
 )
 
 from app.bot.context import DatabaseContext
-from app.config import Config
 from app.database import Database
+from app.config import Config
 
 from .handlers import register_handlers
+
+import logging
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +32,6 @@ class TelegramBot:
                 .context_types(ContextTypes(context=DatabaseContext))
                 .build()
             )
-
             register_handlers(self.app)
 
     async def start(self):
@@ -46,9 +46,8 @@ class TelegramBot:
 
             # Delete any existing webhook
             await self.app.bot.delete_webhook(drop_pending_updates=True)
+            
             logger.info("⛱ Opening connection path")
-
-            # Start polling for updates
             logger.info("🏁 Starting bot polling...")
 
             await self.app.start()

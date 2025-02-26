@@ -1,36 +1,32 @@
-import logging
+# app.bot.handlers.start.py
 from datetime import datetime
 
-from sqlalchemy import select
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
+from sqlalchemy import select
 
 from app.database.models import User
 
+import logging
+
 logger = logging.getLogger(__name__)
 
-
-async def start_handler(
-    update: Update, context: ContextTypes.DEFAULT_TYPE
-) -> None:
+async def start_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user = update.effective_user
     if user is None:
-        logger.error("No effective user in the update")
+        logger.error("System: No effective user in the update")
         return
 
     async with context.db.session() as session:
-        result = await session.execute(
-            select(User).where(User.telegram_id == user.id)
-        )
+        result = await session.execute(select(User).where(User.telegram_id == user.id))
         db_user = result.scalar_one_or_none()
 
-        # Get user's profile photos
+        # Get user's profile
         photos = await context.bot.get_user_profile_photos(user.id, limit=1)
-        photo_id = (
-            photos.photos[0][0].file_id if photos and photos.photos else None
-        )
+        photo_id = (photos.photos[0][0].file_id if photos and photos.photos else None)
 
         if not db_user:
+            # Add user to database
             db_user = User(
                 telegram_id=user.id,
                 username=user.username,
@@ -90,12 +86,14 @@ async def start_handler(
                 f"**>*توجه:* برای استفاده از این ربات باید در کانال انجمن ما عضو شوید\! \@acm\_nus\n"
             )
         await session.commit()
+
         # Create inline keyboard with buttons
         keyboard = [
             [InlineKeyboardButton("🕹️ آموزش ربات دستیار", callback_data="status")],
             [InlineKeyboardButton("🪴 درباره ما", callback_data="status")],
         ]
         reply_markup = InlineKeyboardMarkup(keyboard)
+
     await update.message.reply_photo(
             photo="AgACAgQAAxkDAAIDS2e5-xgWr1Q44y1XD4sptI38U-eQAALLxzEbwyPQUQZkjCRRddscAQADAgADdwADNgQ",
             caption=welcome_message,
