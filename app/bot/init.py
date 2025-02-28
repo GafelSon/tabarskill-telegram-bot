@@ -37,7 +37,7 @@ class TelegramBot:
             )
             register_handlers(self.app)
 
-    async def start(self, max_attempts:int, delay_attempts:int=2):
+    async def start(self, delay_attempts:int=2):
         while True:
             try:
                 # Initialize database
