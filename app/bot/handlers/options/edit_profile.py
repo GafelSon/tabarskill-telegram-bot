@@ -13,6 +13,7 @@ from sqlalchemy import select
 from app.bot.handlers.bio import bio_handler
 from app.database.models import User
 
+
 import logging
 
 logger = logging.getLogger(__name__)

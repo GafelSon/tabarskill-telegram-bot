@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 async def start_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user = update.effective_user
     if user is None:
-        logger.error("System: No effective user in the update")
+        logger.error("SYSTEM: No effective user in the update")
         return
 
     async with context.db.session() as session:

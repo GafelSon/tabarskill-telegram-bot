@@ -18,7 +18,7 @@ def escape_markdown(text):
 async def bio_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user = update.effective_user
     if user is None:
-        logger.error("System: No effective user in the update!")
+        logger.error("SYSTEM: No effective user in the update!")
         return
 
     # Get the user from the database

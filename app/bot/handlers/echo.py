@@ -14,4 +14,4 @@ async def echo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             text=f"🤖 ربات: گفتی {update.message.text}؟ منم گفتم! حالا دو برابر مهم شد! 📢📢😆"
         )
     else:
-        logger.warning(f"System: Received update without message text: {update}")
+        logger.warning(f"SYSTEM: Received update without message text: {update}")
