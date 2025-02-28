@@ -1,25 +1,60 @@
 # app.api.endpoints.py
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Union
 from datetime import datetime
 from uuid import UUID
 
-from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile
+from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile, Depends
 from fastapi.responses import JSONResponse
+from fastapi.security import APIKeyHeader
 from sqlalchemy import select
+
 import aiofiles
+import asyncio
 
 from app.database.models import User
 from app.main import bot
 
 import logging
-import os
+import os, signal
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
+validator_header = APIKeyHeader(name="BOT-API-Key", auto_error=True)
+
+async def validator(api_key: str = Depends(validator_header)):
+    if api_key != os.getenv("API_KEY"):
+        raise HTTPException(status_code=403, detail="SYSTEM: Invalid API Key")
+    return api_key
+
+@router.post("/shutdown", dependencies=[Depends(validator)])
+async def shutdown():
+    try:
+        logger.info("SYSTEM: Shutdown requested")
+        import asyncio
+        asyncio.create_task(delayed())
+        return {"message": "Server is shutting down..."}
+    except Exception as e:
+        logger.error(f"SYSTEM: Shutdown request failed: {str(e)}")
+        raise HTTPException(status_code=500, detail="Shutdown failed")
+
+async def delayed():
+    await send_broadcast_message(
+        message= (
+            f">پیام عمومی\n\n\n"
+            f"⚠️ *خبر فوری: برنامه نویسان مشغول کارند\!* ⚒️✨\n\n"
+            f"در حال حاضر، سرویس مورد نظر به دلیل فعالیت‌های حساس و مهم ارتقاء سیستم، در دسترس نیست\.لطفاً صبور باشید — ما تمام تلاش خود را برای بازگرداندن سرویس با بهترین حالت انجام می‌دهیم\. 🚀\n\n"
+            f"🕐 زمان تقریبی آنلاین شدن سرور: n دقیقه\n\n"
+            f">با تشکر از صبوری شما، انجمن علمی کامپیوتر 🙏🏼"
+        ),
+        image="AgACAgQAAxkDAAIDS2e5-xgWr1Q44y1XD4sptI38U-eQAALLxzEbwyPQUQZkjCRRddscAQADAgADdwADNgQ"
+    )
+    await asyncio.sleep(1)
+    os.kill(os.getpid(), signal.SIGTERM)
+
 # Health Check
-@router.get("/health")
+@router.get("/health", dependencies=[Depends(validator)])
 async def get_health_status() -> Dict[str, Any]:
     try:
         bot_info = await bot.app.bot.get_me()
@@ -45,30 +80,30 @@ async def get_health_status() -> Dict[str, Any]:
             status_code=503,
             content={
                 "status": "error",
-                "message": "System: Service unavailable",
+                "message": "SYSTEM: Service unavailable",
                 "error": str(e),
             },
         )
 
 
 # Webhook Endpoint
-@router.post("/webhook")
+@router.post("/webhook", dependencies=[Depends(validator)])
 async def handle_telegram_webhook(request: Request) -> Dict[str, str]:
     try:
         update_data = await request.json()
-        logger.info(f"System: Received webhook update: {update_data}")
+        logger.info(f"SYSTEM: Received webhook update: {update_data}")
         await bot.app.process_update(update_data)
         return {"status": "ok"}
 
     except ValueError as e:
-        logger.error(f"System: Invalid update data received: {str(e)}")
+        logger.error(f"SYSTEM: Invalid update data received: {str(e)}")
         raise HTTPException(status_code=400, detail="Invalid update data")
     except Exception as e:
-        logger.error(f"System: Error processing webhook: {str(e)}")
+        logger.error(f"SYSTEM: Error processing webhook: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 # User Endpoints
-@router.get("/users", response_model=List[Dict[str, Any]])
+@router.get("/users", response_model=List[Dict[str, Any]], dependencies=[Depends(validator)])
 async def get_list_users():
     try:
         async with bot.db.session() as session:
@@ -95,19 +130,19 @@ async def get_list_users():
                 for user in users
             ]
     except Exception as e:
-        logger.error(f"System: Error fetching users: {str(e)}")
+        logger.error(f"SYSTEM: Error fetching users: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
 # User Endpoints for Premium
-@router.post("/users/{user_id}/premium")
+@router.post("/users/{user_id}/premium", dependencies=[Depends(validator)])
 async def upgrade_user_to_premium(user_id: UUID):
     try:
         async with bot.db.session() as session:
             result = await session.execute(select(User).where(User.id == user_id))
             user = result.scalar_one_or_none()
             if not user:
-                raise HTTPException(status_code=404, detail="System: User not found")
+                raise HTTPException(status_code=404, detail="SYSTEM: User not found")
 
             user.is_premium = True
             await session.commit()
@@ -122,21 +157,22 @@ async def upgrade_user_to_premium(user_id: UUID):
                 },
             }
     except Exception as e:
-        logger.error(f"System: Error updating user premium status: {str(e)}")
+        logger.error(f"SYSTEM: Error updating user premium status: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
 # Broadcast Endpoint
-@router.post("/broadcast")
+@router.post("/broadcast", dependencies=[Depends(validator)])
 async def send_broadcast_message(
-    message: str = Form(...), image: UploadFile = File(None)
+    message: str = Form(...), image: Union[UploadFile, str, None] = None
 ):
     try:
         async with bot.db.session() as session:
             result = await session.execute(select(User))
             users = result.scalars().all()
+        
         image_path = None
-        if image:
+        if isinstance(image, UploadFile):
             upload_dir = "database/lib"
             os.makedirs(upload_dir, exist_ok=True)
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -152,18 +188,25 @@ async def send_broadcast_message(
 
         for user in users:
             try:
-                if image_path:
+                if isinstance(image, str):
+                    await bot.app.bot.send_photo(
+                        chat_id=user.telegram_id,
+                        photo=image,
+                        caption=message,
+                        parse_mode="MarkdownV2",
+                    )
+                elif image_path:
                     await bot.app.bot.send_photo(
                         chat_id=user.telegram_id,
                         photo=image_path,
                         caption=message,
-                        parse_mode="Markdown",
+                        parse_mode="MarkdownV2",
                     )
                 else:
                     await bot.app.bot.send_message(
                         chat_id=user.telegram_id,
                         text=message,
-                        parse_mode="Markdown",
+                        parse_mode="MarkdownV2",
                     )
                 success_count += 1
             except Exception as e:
