@@ -18,7 +18,7 @@ def check_tokens(cost: float = 0.75):
         ):
             user = update.effective_user
             if user is None:
-                logger.error("System: No effective user in the update")
+                logger.error("SYSTEM: No effective user in the update")
                 return
             
             # Get the user from the database
