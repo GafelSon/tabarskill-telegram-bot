@@ -173,7 +173,7 @@ async def send_broadcast_message(
         
         image_path = None
         if isinstance(image, UploadFile):
-            upload_dir = "database/lib"
+            upload_dir = "app/database/lib"
             os.makedirs(upload_dir, exist_ok=True)
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
             filename = f"{timestamp}_{image.filename}"
