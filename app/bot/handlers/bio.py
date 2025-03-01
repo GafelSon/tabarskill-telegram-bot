@@ -4,6 +4,7 @@ from telegram.ext import ContextTypes
 from sqlalchemy import select
 
 from app.database.models import User
+from app.utils.jalali import jcal
 
 import logging
 
@@ -41,8 +42,8 @@ async def bio_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
             f"    📚 رشته تحصیلی: {escape_markdown(db_user.major or '—')}\n"
             f"    🗓️ سال ورود: {escape_markdown(db_user.entry_year or '—')}\n\n"
             f"💎 *وضعیت اشتراک:*\n"
-            f"    📅 تاریخ ثبت‌نام: {escape_markdown(db_user.created_at.strftime('%y/%m/%d'))}\n"
-            f"    ⏱️ آخرین فعالیت: {escape_markdown(db_user.last_interaction.strftime('%y/%m/%d %H:%M'))}\n\n"
+            f"    📅 تاریخ ثبت‌نام: {escape_markdown(jcal.format(jcal.tab(db_user.created_at), date_only=True))}\n"
+            f"    ⏱️ آخرین فعالیت: {escape_markdown(jcal.format(jcal.tab(db_user.last_interaction)))}\n\n"
             f"**>[چرا برای دستیار دانشگاهی اشتراک ويژه نیاز است؟**](tg://user?id=5455523252)\n\n"
             f"**>[راهنمای استفاده از ربات دستیار**](tg://user?id=5455523252)\n\n"
             f"**>[دسترسی به پشتیبانی فنی ربات دستیار**](tg://user?id=5455523252)\n"
@@ -64,6 +65,6 @@ async def bio_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
                 reply_markup=reply_markup
             )
         else:
-            await update.message.reply_text(bio_text, parse_mode='Markdown')
+            await update.message.reply_text(bio_text, parse_mode='MarkdownV2')
             
         logger.info(f"Bio requested by user: {user.id}")

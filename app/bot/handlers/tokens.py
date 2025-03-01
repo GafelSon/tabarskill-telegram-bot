@@ -4,6 +4,7 @@ from telegram.ext import ContextTypes
 from sqlalchemy import select
 
 from app.database.models import User
+from app.utils.jalali import jcal
 
 import logging
 
@@ -37,7 +38,7 @@ async def tokens_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             f"*نام کاربری:* \@{escape_markdown(db_user.username or 'دانشجوی جدید')}\n\n"
             f"💎 *نوع اشتراک:* {'✨ ویژه' if db_user.is_premium else '🔹 رایگان'}\n"
             f"🎫 *توکن‌های باقیمانده:* {db_user.tokens or 0}\n"
-            f"📅 *تاریخ عضویت:* {db_user.created_at.strftime('%y/%m/%d %H:%M')}\n\n"
+            f"📅 *تاریخ عضویت:* {escape_markdown(jcal.format(jcal.tab(db_user.created_at), date_only=True))}\n\n"
             f">{'✨ شما دسترسی ویژه دارید و می‌توانید از تمام امکانات ربات استفاده کنید\.' if db_user.is_premium else '⭐️ برای استفاده از امکانات ویژه، اشتراک تهیه کنید\.'}"
         )
 
