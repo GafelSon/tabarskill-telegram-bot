@@ -1,21 +1,27 @@
 # app.api.endpoints.py
-from typing import Any, Dict, List, Union
+import asyncio
+import logging
+import os
+import signal
 from datetime import datetime
+from typing import Any, Dict, List, Union
 from uuid import UUID
 
-from fastapi import APIRouter, File, Form, HTTPException, Request, UploadFile, Depends
+import aiofiles
+from fastapi import (
+    APIRouter,
+    Depends,
+    Form,
+    HTTPException,
+    Request,
+    UploadFile,
+)
 from fastapi.responses import JSONResponse
 from fastapi.security import APIKeyHeader
 from sqlalchemy import select
 
-import aiofiles
-import asyncio
-
-from app.database.models import User
+from app.database.models import ProfileModel
 from app.main import bot
-
-import logging
-import os, signal
 
 logger = logging.getLogger(__name__)
 
@@ -23,35 +29,40 @@ router = APIRouter()
 
 validator_header = APIKeyHeader(name="BOT-API-Key", auto_error=True)
 
+
 async def validator(api_key: str = Depends(validator_header)):
     if api_key != os.getenv("API_KEY"):
         raise HTTPException(status_code=403, detail="SYSTEM: Invalid API Key")
     return api_key
+
 
 @router.post("/shutdown", dependencies=[Depends(validator)])
 async def shutdown():
     try:
         logger.info("SYSTEM: Shutdown requested")
         import asyncio
+
         asyncio.create_task(delayed())
         return {"message": "Server is shutting down..."}
     except Exception as e:
         logger.error(f"SYSTEM: Shutdown request failed: {str(e)}")
         raise HTTPException(status_code=500, detail="Shutdown failed")
 
+
 async def delayed():
     await send_broadcast_message(
-        message= (
-            f">پیام عمومی\n\n\n"
-            f"⚠️ *خبر فوری: برنامه نویسان مشغول کارند\!* ⚒️✨\n\n"
-            f"در حال حاضر، سرویس مورد نظر به دلیل فعالیت‌های حساس و مهم ارتقاء سیستم، در دسترس نیست\.لطفاً صبور باشید — ما تمام تلاش خود را برای بازگرداندن سرویس با بهترین حالت انجام می‌دهیم\. 🚀\n\n"
-            f"🕐 زمان تقریبی آنلاین شدن سرور: n دقیقه\n\n"
-            f">با تشکر از صبوری شما، انجمن علمی کامپیوتر 🙏🏼"
+        message=(
+            ">پیام عمومی\n\n\n"
+            "⚠️ *خبر فوری: برنامه نویسان مشغول کارند\!* ⚒️✨\n\n"
+            "در حال حاضر، سرویس مورد نظر به دلیل فعالیت‌های حساس و مهم ارتقاء سیستم، در دسترس نیست\.لطفاً صبور باشید — ما تمام تلاش خود را برای بازگرداندن سرویس با بهترین حالت انجام می‌دهیم\. 🚀\n\n"
+            "🕐 زمان تقریبی آنلاین شدن سرور: n دقیقه\n\n"
+            ">با تشکر از صبوری شما، انجمن علمی کامپیوتر 🙏🏼"
         ),
-        image="AgACAgQAAxkDAAIDS2e5-xgWr1Q44y1XD4sptI38U-eQAALLxzEbwyPQUQZkjCRRddscAQADAgADdwADNgQ"
+        image="AgACAgQAAxkDAAIDS2e5-xgWr1Q44y1XD4sptI38U-eQAALLxzEbwyPQUQZkjCRRddscAQADAgADdwADNgQ",
     )
     await asyncio.sleep(1)
     os.kill(os.getpid(), signal.SIGTERM)
+
 
 # Health Check
 @router.get("/health", dependencies=[Depends(validator)])
@@ -64,7 +75,7 @@ async def get_health_status() -> Dict[str, Any]:
             "description": "Telegram bot for NUS university of mazandaran",
             "bot_info": {
                 "id": bot_info.id,
-                "username": bot_info.username,
+                "username": bot_info.telegram_username ,
                 "is_bot": bot_info.is_bot,
             },
             "contributors": ["gafelson"],
@@ -102,12 +113,17 @@ async def handle_telegram_webhook(request: Request) -> Dict[str, str]:
         logger.error(f"SYSTEM: Error processing webhook: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
+
 # User Endpoints
-@router.get("/users", response_model=List[Dict[str, Any]], dependencies=[Depends(validator)])
+@router.get(
+    "/users",
+    response_model=List[Dict[str, Any]],
+    dependencies=[Depends(validator)],
+)
 async def get_list_users():
     try:
         async with bot.db.session() as session:
-            result = await session.execute(select(User))
+            result = await session.execute(select(ProfileModel))
             users = result.scalars().all()
             return [
                 {
@@ -115,7 +131,7 @@ async def get_list_users():
                     if user.is_premium
                     else "Not Premium",
                     "telegram_id": user.telegram_id,
-                    "username": user.username,
+                    "username": user.telegram_username ,
                     "first_name": user.first_name,
                     "last_name": user.last_name,
                     "university_id": user.university_id,
@@ -139,10 +155,14 @@ async def get_list_users():
 async def upgrade_user_to_premium(user_id: UUID):
     try:
         async with bot.db.session() as session:
-            result = await session.execute(select(User).where(User.id == user_id))
+            result = await session.execute(
+                select(ProfileModel).where(ProfileModel.id == user_id)
+            )
             user = result.scalar_one_or_none()
             if not user:
-                raise HTTPException(status_code=404, detail="SYSTEM: User not found")
+                raise HTTPException(
+                    status_code=404, detail="SYSTEM: User not found"
+                )
 
             user.is_premium = True
             await session.commit()
@@ -152,7 +172,7 @@ async def upgrade_user_to_premium(user_id: UUID):
                 "user": {
                     "id": user.id,
                     "telegram_id": user.telegram_id,
-                    "username": user.username,
+                    "username": user.telegram_username ,
                     "is_premium": user.is_premium,
                 },
             }
@@ -168,9 +188,9 @@ async def send_broadcast_message(
 ):
     try:
         async with bot.db.session() as session:
-            result = await session.execute(select(User))
+            result = await session.execute(select(ProfileModel))
             users = result.scalars().all()
-        
+
         image_path = None
         if isinstance(image, UploadFile):
             upload_dir = "app/database/lib"
@@ -193,20 +213,20 @@ async def send_broadcast_message(
                         chat_id=user.telegram_id,
                         photo=image,
                         caption=message,
-                        parse_mode="MarkdownV2",
+                        parse_mode="Markdown",
                     )
                 elif image_path:
                     await bot.app.bot.send_photo(
                         chat_id=user.telegram_id,
                         photo=image_path,
                         caption=message,
-                        parse_mode="MarkdownV2",
+                        parse_mode="Markdown",
                     )
                 else:
                     await bot.app.bot.send_message(
                         chat_id=user.telegram_id,
                         text=message,
-                        parse_mode="MarkdownV2",
+                        parse_mode="Markdown",
                     )
                 success_count += 1
             except Exception as e:
