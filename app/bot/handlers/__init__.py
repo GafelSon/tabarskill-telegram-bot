@@ -1,46 +1,78 @@
 # app.bot.handlers.__init__.py
-from telegram.ext import CommandHandler, MessageHandler, filters
-from telegram.ext import CallbackQueryHandler
 from functools import wraps
 
-from .start import start_handler
-from .help import help_handler
-from .bio import bio_handler
-from .tokens import tokens_handler
-from .echo import echo_handler
+from telegram.ext import (
+    CallbackQueryHandler,
+    CommandHandler,
+    MessageHandler,
+    filters,
+)
 
+from app.bot.handlers.start import profile_callback_handler
+from app.utils.channel import (
+    check_membership_callback,
+    require_channel_membership,
+)
+from app.utils.jalali import calendar_callback
 from app.utils.tokens import check_tokens
-from app.utils.channel import require_channel_membership
-from app.utils.channel import check_membership_callback
 
+from .bio import bio_handler
+from .calendar import calendar_handler
+from .echo import echo_handler
+from .help import help_handler
 from .options.edit_profile import edit_profile_handler
+from .start import start_handler
+from .time import time_handler
+from .tokens import tokens_handler
+
 
 def channel_check(register_func):
     @wraps(register_func)
     def wrapper(app, *args, **kwargs):
+        # Register options handlers separately
+        app.add_handler(edit_profile_handler)
+
         app.add_handler(CommandHandler("start", start_handler))
-        app.add_handler(CallbackQueryHandler(check_membership_callback, pattern="^check_membership$"))
+        app.add_handler(
+            CallbackQueryHandler(
+                check_membership_callback, pattern="^check_membership$"
+            )
+        )
+        app.add_handler(
+            CallbackQueryHandler(
+                profile_callback_handler,
+                pattern="^(uni_|fac_|maj_|role_|reset_profile|confirm_reset|cancel_reset|back_university|back_faculty_|back_major|cancel_profile)",
+            )
+        )
+        app.add_handler(CallbackQueryHandler(calendar_callback))
 
         handlers = {
             "bio": bio_handler,
             "help": help_handler,
             "tokens": tokens_handler,
+            "time": time_handler,
+            "calendar": calendar_handler,
         }
         for command, handler in handlers.items():
-            app.add_handler(CommandHandler(command, require_channel_membership(handler)))
-        
-        # Register options handlers separately
-        app.add_handler(edit_profile_handler)
-        
+            app.add_handler(
+                CommandHandler(command, require_channel_membership(handler))
+            )
+
         # Premium handlers
         premium_handlers = [
-            # (MessageHandler(filters.TEXT & ~filters.COMMAND, check_tokens(0.25)(require_channel_membership(echo_handler)))),
+            (
+                MessageHandler(
+                    filters.TEXT & ~filters.COMMAND,
+                    check_tokens(5)(require_channel_membership(echo_handler)),
+                )
+            ),
         ]
-        
+
         for handler in premium_handlers:
             app.add_handler(handler)
-            
+
     return wrapper
+
 
 @channel_check
 def register_handlers(app):
