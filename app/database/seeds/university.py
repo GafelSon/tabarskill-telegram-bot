@@ -19,12 +19,12 @@ async def seed_universities(db: AsyncSession):
 
     faculties = [
         {
-            "name": "امام محمد باقر (ع) ساری",
+            "name": "امام محمد باقر ساری",
             "short_name": "DMC",
             "university_id": 1,
         },
         {
-            "name": "قدسیه ساری (دختران)",
+            "name": "قدسیه ساری",
             "short_name": "DMM",
             "university_id": 1,
         },
