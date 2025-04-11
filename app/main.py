@@ -1,11 +1,10 @@
+import logging
+
+import aiohttp
 from fastapi import FastAPI
 
 from app.bot.init import TelegramBot
 from app.config import Config
-
-import logging
-import aiohttp
-import sys
 
 # Configure logging
 Config.setup_logging()
@@ -15,8 +14,8 @@ app = FastAPI(
     title="TabarSkill Telegram Bot",
     docs_url=None,
     redoc_url=None,
-    version="0.1.0"
-    )
+    version="0.1.0",
+)
 bot = TelegramBot()
 
 
@@ -25,8 +24,8 @@ async def startup_event():
     try:
         await bot.start()
         logger.info("SYSTEM: Bot started successfully.")
-    except aiohttp.ClientError as network_error:
-        logger.error(f"SYSTEM: Bot failed to start due to network error")
+    except aiohttp.ClientError:
+        logger.error("SYSTEM: Bot failed to start due to network error")
         raise
     except Exception as e:
         logger.error(f"SYSTEM: Failed to start bot: {str(e)}")
@@ -52,6 +51,6 @@ async def shutdown_event():
 
 
 # Include API routes
-from app.api.endpoints import router
+from app.api.endpoints import router  # noqa: E402
 
 app.include_router(router)
