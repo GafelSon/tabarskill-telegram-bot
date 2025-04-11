@@ -1,5 +1,4 @@
 from sqlalchemy import (
-    BigInteger,
     Boolean,
     Column,
     DateTime,
@@ -33,8 +32,8 @@ class ProfileModel(Base):
     role = Column(Enum(RoleType), nullable=False)
     university_id = Column(Integer, ForeignKey("university.id"))
 
-    university_name = Column(String) 
-    faculty_name = Column(String) 
+    university_name = Column(String)
+    faculty_name = Column(String)
     major_name = Column(String)
 
     # This is for make user to support access
