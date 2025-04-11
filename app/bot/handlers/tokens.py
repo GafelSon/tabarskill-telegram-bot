@@ -3,7 +3,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from sqlalchemy import select
 
-from app.database.models import User
+from app.database.models import ProfileModel
 from app.utils.jalali import jcal
 
 import logging
@@ -25,7 +25,7 @@ async def tokens_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     
     # Get the user from the database
     async with context.db.session() as session:
-        result = await session.execute(select(User).where(User.telegram_id == user.id))
+        result = await session.execute(select(ProfileModel).where(ProfileModel.telegram_id == user.id))
         db_user = result.scalar_one_or_none()
 
         if not db_user:
@@ -35,7 +35,7 @@ async def tokens_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         tokens_message = (
             f">اعتبار دانشجویی\n\n\n"
             f"💫 *وضعیت اشتراک شما*:\n\n"
-            f"*نام کاربری:* \@{escape_markdown(db_user.username or 'دانشجوی جدید')}\n\n"
+            f"*نام کاربری:* \@{escape_markdown(db_user.telegram_username or 'دانشجوی جدید')}\n\n"
             f"💎 *نوع اشتراک:* {'✨ ویژه' if db_user.is_premium else '🔹 رایگان'}\n"
             f"🎫 *توکن‌های باقیمانده:* {db_user.tokens or 0}\n"
             f"📅 *تاریخ عضویت:* {escape_markdown(jcal.format(jcal.tab(db_user.created_at), date_only=True))}\n\n"
