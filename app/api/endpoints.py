@@ -4,7 +4,7 @@ import logging
 import os
 import signal
 from datetime import datetime
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Optional, Union
 from uuid import UUID
 
 import aiofiles
@@ -22,6 +22,7 @@ from sqlalchemy import select
 
 from app.database.models import ProfileModel
 from app.main import bot
+from app.utils.channel import archive
 
 logger = logging.getLogger(__name__)
 
@@ -75,7 +76,7 @@ async def get_health_status() -> Dict[str, Any]:
             "description": "Telegram bot for NUS university of mazandaran",
             "bot_info": {
                 "id": bot_info.id,
-                "username": bot_info.telegram_username ,
+                "username": bot_info.telegram_username,
                 "is_bot": bot_info.is_bot,
             },
             "contributors": ["gafelson"],
@@ -131,7 +132,7 @@ async def get_list_users():
                     if user.is_premium
                     else "Not Premium",
                     "telegram_id": user.telegram_id,
-                    "username": user.telegram_username ,
+                    "username": user.telegram_username,
                     "first_name": user.first_name,
                     "last_name": user.last_name,
                     "university_id": user.university_id,
@@ -172,7 +173,7 @@ async def upgrade_user_to_premium(user_id: UUID):
                 "user": {
                     "id": user.id,
                     "telegram_id": user.telegram_id,
-                    "username": user.telegram_username ,
+                    "username": user.telegram_username,
                     "is_premium": user.is_premium,
                 },
             }
