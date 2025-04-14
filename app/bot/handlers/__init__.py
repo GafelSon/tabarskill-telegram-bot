@@ -23,7 +23,8 @@ from .help import help_handler
 from .options.edit_profile import edit_profile_handler
 from .start import start_handler
 from .time import time_handler
-from .tokens import tokens_handler
+from .upload import upload_handler
+from .wallet import wallet_handler
 
 
 def channel_check(register_func):
@@ -45,13 +46,14 @@ def channel_check(register_func):
             )
         )
         app.add_handler(CallbackQueryHandler(calendar_callback))
+        app.add_handler(upload_handler)
 
         handlers = {
             "bio": bio_handler,
             "help": help_handler,
-            "tokens": tokens_handler,
             "time": time_handler,
             "calendar": calendar_handler,
+            "wallet": wallet_handler,
         }
         for command, handler in handlers.items():
             app.add_handler(
