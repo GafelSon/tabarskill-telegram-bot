@@ -137,12 +137,17 @@ async def start_handler(
                     )
                 ],
                 [InlineKeyboardButton("🪴 درباره ما", callback_data="about")],
+                [
+                    InlineKeyboardButton(
+                        "🔄 تنظیم مجدد حساب", callback_data="reset_profile"
+                    )
+                ],
             ]
             reply_markup = InlineKeyboardMarkup(keyboard)
 
             if update.message:
                 await update.message.reply_photo(
-                    photo="AgACAgQAAxkDAAIDS2e5-xgWr1Q44y1XD4sptI38U-eQAALLxzEbwyPQUQZkjCRRddscAQADAgADdwADNgQ",
+                    photo="AgACAgQAAyEGAASLt5ydAAMmZ_yo0BP-GMN8Vjv7pn9FojWPr4IAAnDGMRstPuFT2ygGVy3kLJ8BAAMCAANtAAM2BA",
                     caption=welcome_message,
                     reply_markup=reply_markup,
                     parse_mode="MarkdownV2",
@@ -587,7 +592,7 @@ async def show_welcome_message(
     else:
         if update.message:
             await update.message.reply_photo(
-                photo="AgACAgQAAxkDAAIDS2e5-xgWr1Q44y1XD4sptI38U-eQAALLxzEbwyPQUQZkjCRRddscAQADAgADdwADNgQ",
+                photo="AgACAgQAAyEGAASLt5ydAAMmZ_yo0BP-GMN8Vjv7pn9FojWPr4IAAnDGMRstPuFT2ygGVy3kLJ8BAAMCAANtAAM2BA",
                 caption=welcome_message,
                 reply_markup=reply_markup,
                 parse_mode="MarkdownV2",
@@ -662,13 +667,23 @@ async def profile_callback_handler(
                 ]
             ]
             reply_markup = InlineKeyboardMarkup(keyboard)
-            await query.edit_message_text(
-                markdownES(
-                    "آیا از بازنشانی پروفایل خود مطمئن هستید؟ این عمل غیرقابل بازگشت است."
-                ),
-                reply_markup=reply_markup,
-                parse_mode="MarkdownV2",
-            )
+
+            if hasattr(query.message, "photo") and query.message.photo:
+                await query.edit_message_caption(
+                    caption=markdownES(
+                        "آیا از بازنشانی پروفایل خود مطمئن هستید؟ این عمل غیرقابل بازگشت است."
+                    ),
+                    reply_markup=reply_markup,
+                    parse_mode="MarkdownV2",
+                )
+            else:
+                await query.edit_message_text(
+                    markdownES(
+                        "آیا از بازنشانی پروفایل خود مطمئن هستید؟ این عمل غیرقابل بازگشت است."
+                    ),
+                    reply_markup=reply_markup,
+                    parse_mode="MarkdownV2",
+                )
             return
 
         if data == "confirm_reset":
