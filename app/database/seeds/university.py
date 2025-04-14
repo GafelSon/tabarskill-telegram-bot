@@ -72,9 +72,6 @@ async def seed_universities(db: AsyncSession):
             university = UniversityModel(**university_data)
             db.add(university)
             await db.flush()
-            print(f"University added: {university_data['name']}")
-        else:
-            print(f"University already exists: {university_data['name']}")
 
     for faculty_data in faculties:
         query = select(FacultyModel).filter_by(
@@ -88,9 +85,6 @@ async def seed_universities(db: AsyncSession):
             faculty = FacultyModel(**faculty_data)
             db.add(faculty)
             await db.flush()
-            print(f"Faculty added: {faculty_data['name']}")
-        else:
-            print(f"Faculty already exists: {faculty_data['name']}")
 
     for major_data in majors:
         query = select(MajorModel).filter_by(

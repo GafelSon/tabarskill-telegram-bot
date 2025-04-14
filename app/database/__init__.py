@@ -2,11 +2,17 @@ import os
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+from sqlalchemy.ext.asyncio import (
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
 from sqlalchemy.pool import NullPool
 
-from .models import Base
 from app.database.seeds import seed_universities
+
+from .models import Base
+
 
 class Database:
     _instance = None
@@ -35,7 +41,7 @@ class Database:
     async def init(self):
         async with self.engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)
-        
+
         async with self.session() as session:
             await seed_universities(session)
 
