@@ -4,8 +4,7 @@ import logging
 import os
 import signal
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Union
-from uuid import UUID
+from typing import Any, Dict, List, Union
 
 import aiofiles
 from fastapi import (
@@ -22,7 +21,6 @@ from sqlalchemy import select
 
 from app.database.models import ProfileModel
 from app.main import bot
-from app.utils.channel import archive
 
 logger = logging.getLogger(__name__)
 
@@ -148,37 +146,6 @@ async def get_list_users():
             ]
     except Exception as e:
         logger.error(f"SYSTEM: Error fetching users: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-# User Endpoints for Premium
-@router.post("/users/{user_id}/premium", dependencies=[Depends(validator)])
-async def upgrade_user_to_premium(user_id: UUID):
-    try:
-        async with bot.db.session() as session:
-            result = await session.execute(
-                select(ProfileModel).where(ProfileModel.id == user_id)
-            )
-            user = result.scalar_one_or_none()
-            if not user:
-                raise HTTPException(
-                    status_code=404, detail="SYSTEM: User not found"
-                )
-
-            user.is_premium = True
-            await session.commit()
-            return {
-                "status": "success",
-                "message": f"User {user_id} is now premium",
-                "user": {
-                    "id": user.id,
-                    "telegram_id": user.telegram_id,
-                    "username": user.telegram_username,
-                    "is_premium": user.is_premium,
-                },
-            }
-    except Exception as e:
-        logger.error(f"SYSTEM: Error updating user premium status: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
