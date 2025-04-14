@@ -102,9 +102,8 @@ async def seed_universities(db: AsyncSession):
         if not existing_major:
             major = MajorModel(**major_data)
             db.add(major)
-            print(f"Major added: {major_data['name']}")
-        else:
-            print(f"Major already exists: {major_data['name']}")
 
     await db.commit()
-    print("Universities, faculties, and majors seeded successfully!")
+    print(
+        "🏫 Universities, 🏢 faculties, and 📚 majors seeded successfully! 🌱"
+    )
