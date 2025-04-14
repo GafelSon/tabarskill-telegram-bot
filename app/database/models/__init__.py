@@ -13,3 +13,4 @@ from .faculty import FacultyModel
 from .major import MajorModel
 from .university import UniversityModel
 from .wallet import WalletBase
+from .transaction import TransactionModel
