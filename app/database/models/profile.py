@@ -44,6 +44,7 @@ class ProfileModel(Base):
     date_updated = Column(DateTime, onupdate=func.now())
 
     wallet = relationship("WalletBase", back_populates="profile", uselist=False)
+    transactions = relationship("TransactionModel", back_populates="profile")
 
     student = relationship(
         "StudentModel", back_populates="profile", uselist=False
