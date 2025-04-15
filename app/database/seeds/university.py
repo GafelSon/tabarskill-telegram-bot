@@ -98,6 +98,3 @@ async def seed_universities(db: AsyncSession):
             db.add(major)
 
     await db.commit()
-    print(
-        "🏫 Universities, 🏢 faculties, and 📚 majors seeded successfully! 🌱"
-    )
