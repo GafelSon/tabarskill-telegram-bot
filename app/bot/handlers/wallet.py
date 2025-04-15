@@ -88,8 +88,8 @@ async def wallet_handler(
 
         tokens_message = (
             f">کیف پول\n\n\n"
-            f"💰 *موجودی کیف پول شما*:\n\n"
             f"*نام کاربری:* \\@{escape_markdown(db_user.telegram_username or 'کاربر جدید')}\n\n"
+            f"💰 *موجودی کیف پول شما*:\n\n"
             f"🪙 *اعتبار باقیمانده:* {escape_markdown(formatted_token)} قرون\n\n"
         )
 
