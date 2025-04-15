@@ -6,7 +6,10 @@ from sqlalchemy.orm import selectinload
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import ContextTypes
 
-from app.database.models import ProfileModel, StudentModel, ProfessorModel, RoleType, ProfessorPosType
+from app.database.models import (
+    ProfileModel,
+    RoleType,
+)
 from app.utils.jalali import jcal
 
 logger = logging.getLogger(__name__)
@@ -38,7 +41,9 @@ def escape_markdown(text):
     return text
 
 
-async def bio_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def bio_handler(
+    update: Update, context: ContextTypes.DEFAULT_TYPE
+) -> None:
     user = update.effective_user
     if user is None:
         logger.error("SYSTEM: No effective user in the update")
@@ -78,7 +83,7 @@ async def bio_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
                     f"    🏛️ دانشکده: {escape_markdown(db_user.faculty_name or '⚡️ نیاز به تکمیل')}\n"
                     f"    📚 رشته تحصیلی: {escape_markdown(db_user.major_name or '⚡️ نیاز به تکمیل')}\n"
                     f"    🗓️ سال ورود: {escape_markdown(str(db_user.student.enter_year) or '—')}\n"
-                    f"    🏠 خوابگاه: {'بله' if db_user.student.dormitory else 'خیر'}\n\n"
+                    f"    🏠 خوابگاه: {'دارم' if db_user.student.dormitory else 'ندارم'}\n\n"
                 )
             elif db_user.role == RoleType.PROFESSOR and db_user.professor:
                 bio_text += (
@@ -100,9 +105,21 @@ async def bio_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
 
             # Create inline keyboard with buttons
             keyboard = [
-                [InlineKeyboardButton("✏️ ویرایش اطلاعات", callback_data="edit_profile")],
-                [InlineKeyboardButton("💎 وضعیت اشتراک", callback_data="show_status")],
-                [InlineKeyboardButton("📢 دعوت دوستان", callback_data="invite")],
+                [
+                    InlineKeyboardButton(
+                        "✏️ ویرایش اطلاعات", callback_data="edit_profile"
+                    )
+                ],
+                [
+                    InlineKeyboardButton(
+                        "💎 وضعیت اشتراک", callback_data="show_status"
+                    )
+                ],
+                [
+                    InlineKeyboardButton(
+                        "📢 دعوت دوستان", callback_data="invite"
+                    )
+                ],
                 [InlineKeyboardButton("❓ پشتیبانی", callback_data="support")],
             ]
             reply_markup = InlineKeyboardMarkup(keyboard)
@@ -116,9 +133,7 @@ async def bio_handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
                 )
             else:
                 await update.message.reply_text(
-                    bio_text,
-                    parse_mode="MarkdownV2",
-                    reply_markup=reply_markup
+                    bio_text, parse_mode="MarkdownV2", reply_markup=reply_markup
                 )
 
             logger.info(f"Bio requested by user: {user.id}")
