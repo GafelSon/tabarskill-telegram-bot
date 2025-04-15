@@ -113,7 +113,40 @@ async def handle_telegram_webhook(request: Request) -> Dict[str, str]:
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# User Endpoints
+@router.post(
+    "/users/{telegram_id}/flag",
+    response_model=Dict[str, Any],
+    dependencies=[Depends(validator)],
+)
+async def toggle_user_flag(telegram_id: str):
+    try:
+        async with bot.db.session() as session:
+            result = await session.execute(
+                select(ProfileModel).where(ProfileModel.telegram_id == telegram_id)
+            )
+            user = result.scalar_one_or_none()
+            
+            if not user:
+                raise HTTPException(
+                    status_code=404,
+                    detail=f"User with telegram_id {telegram_id} not found"
+                )
+            
+            user.flag = True
+            await session.commit()
+            
+            return {
+                "status": "success",
+                "message": f"Flag enabled for user {telegram_id}",
+                "user": {
+                    "telegram_id": user.telegram_id,
+                    "flag": user.flag
+                }
+            }
+    except Exception as e:
+        logger.error(f"Error toggling user flag: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @router.get(
     "/users",
     response_model=List[Dict[str, Any]],
