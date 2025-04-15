@@ -4,6 +4,10 @@ from app.database import Database
 
 # Database Context Property
 class DatabaseContext(CallbackContext):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.bot_data['db'] = Database()
+
     @property
     def db(self):
-        return Database()
+        return self.bot_data['db']
