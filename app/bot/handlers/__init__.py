@@ -13,6 +13,7 @@ from app.utils.channel import (
     check_membership_callback,
     require_channel_membership,
 )
+from app.utils.flags import require_flag
 from app.utils.jalali import calendar_callback
 from app.utils.tokens import check_tokens
 
@@ -20,6 +21,7 @@ from .bio import bio_handler
 from .calendar import calendar_handler
 from .echo import echo_handler
 from .help import help_handler
+from .menu import menu_handler
 from .options.edit_profile import edit_profile_handler
 from .start import start_handler
 from .time import time_handler
@@ -51,6 +53,7 @@ def channel_check(register_func):
         handlers = {
             "bio": bio_handler,
             "help": help_handler,
+            "menu": menu_handler,
             "time": time_handler,
             "calendar": calendar_handler,
             "wallet": wallet_handler,
@@ -69,6 +72,18 @@ def channel_check(register_func):
                 )
             ),
         ]
+
+        # Flag-restricted handlers
+        flag_handlers = {
+            "wallet": wallet_handler,
+            "upload": upload_handler,
+        }
+        for command, handler in flag_handlers.items():
+            app.add_handler(
+                CommandHandler(
+                    command, require_flag(require_channel_membership(handler))
+                )
+            )
 
         for handler in premium_handlers:
             app.add_handler(handler)
