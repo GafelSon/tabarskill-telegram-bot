@@ -17,7 +17,7 @@ class UniversityModel(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     uuid = Column(
-        String(36), default=lambda: str(_uuid4()), nullable=False, unique=True
+        String(36), nullable=True, unique=True
     )
     name = Column(String(255), nullable=False)
     short_name = Column(String(50))

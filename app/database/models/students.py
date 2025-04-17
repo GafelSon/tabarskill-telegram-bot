@@ -15,19 +15,20 @@ class StudentModel(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     profile_id = Column(BigInteger, ForeignKey("profile.id"), unique=True)
+    university_id = Column(BigInteger, nullable=True)
 
-    student_id = Column(BigInteger, nullable=False, unique=True)
-    enter_year = Column(Integer, nullable=False)
+    student_id = Column(BigInteger, nullable=True, unique=True)
+    enter_year = Column(Integer, nullable=True)
 
     dormitory = Column(Integer, default=False, nullable=False)
 
     __table_args__ = (
-        ForeignKeyConstraint([student_id], ["university.id"]),
         ForeignKeyConstraint(
             [profile_id], ["profile.id"], onupdate="CASCADE", ondelete="CASCADE"
         ),
+        ForeignKeyConstraint([university_id], ["university.id"]),
     )
-    
+
     profile = relationship(
         "ProfileModel", back_populates="student", uselist=False
     )
