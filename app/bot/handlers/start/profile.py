@@ -5,8 +5,10 @@ import asyncio
 from datetime import datetime
 
 # dependencies lib
-from telegram import Update
 from telegram.ext import ContextTypes
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from sqlalchemy import select, delete
+from telegram.error import BadRequest
 
 # local lib
 from app.core.logger import logger
@@ -17,7 +19,16 @@ from app.core.log import (
     start_warning
     )
 from app.utils.escape import markdownES
-from app.database.models import ProfileModel, RoleType
+from app.database.models import (
+    ProfileModel, 
+    UniversityModel, 
+    FacultyModel, 
+    MajorModel, 
+    RoleType,
+    StudentModel,
+    ProfessorModel,
+    ProfessorPosType
+)
 
 # config logger
 logger = logger(__name__)
@@ -37,7 +48,9 @@ async def begin_profile(update: Update, context: ContextTypes.DEFAULT_TYPE, user
         else:
             async with context.db.session() as session:
                 # sql query
-                result = await session.execute(ProfileModel.__table__.select().where(ProfileModel.telegram_id == str(update.effective_user.id)))
+                result = await session.execute(
+                    select(ProfileModel).where(ProfileModel.telegram_id == str(update.effective_user.id))
+                )
                 
                 db_user = result.scalar_one_or_none()
                 if db_user:
@@ -381,13 +394,13 @@ async def welcome(update: Update, context: ContextTypes.DEFAULT_TYPE, user_profi
     user = update.effective_user
     onboarding = (
         f">پنل خوشامدگویی\n"
-        f"\n\n✨ *درود و خوش آمدی،‌ {user.first_name} عزیز\!* ✨\n\n"
+        f"\n\n✨ *درود و خوش آمدی،‌ {markdownES(user.first_name)} عزیز\!* ✨\n\n"
         f"🎓 *به دستیار دانشگاهی خوش آمدید\!*\n"
         f"    ربات دستیار دانشگاه ملی مهارت مازندران، همراه شما برای مدیریت امور دانشگاهی و دسترسی سریع به اطلاعات و منابع است\.\n\n"
         f"📋 *اطلاعات پروفایل شما:*\n"
-        f"    🏛️ دانشگاه: {user_profile.university_name}\n"
-        f"    🔬 دانشکده: {user_profile.faculty_name}\n"
-        f"    📚 رشته: {user_profile.major_name}\n"
+        f"    🏛️ دانشگاه: {markdownES(user_profile.university_name)}\n"
+        f"    🔬 دانشکده: {markdownES(user_profile.faculty_name)}\n"
+        f"    📚 رشته: {markdownES(user_profile.major_name)}\n"
         f"    👤 نقش: {'دانشجو' if user_profile.role == RoleType.STUDENT else 'استاد'}\n\n"
         f"🚀 *دستورات اصلی ربات:*\n"
         f"    🔹 /menu \- مشاهده امکانات\n"
@@ -397,7 +410,7 @@ async def welcome(update: Update, context: ContextTypes.DEFAULT_TYPE, user_profi
         f"    🔹 /schedule \- مشاهده برنامه هفتگی\n"
         f"    🔹 /reminder \- یادآوری\n"
         f"    🔹 /groups \- جامعه دانشگاهی\n\n"
-        f"🛟 *آپدیت جدید \[v1\.0\] – بهبودها و ویژگی‌های تازه\!*\n"
+        f"🛟 *آپدیت جدید \[v1\.0\] \- بهبودها و ویژگی‌های تازه\!*\n"
         f"    ✅ ایجاد و شخصی سازی پورفایل\n"
         f"    ✅ امکان مشاهده اعتبار کاربری\n"
         f"    ✅ امکان مشاهده برنامه هفتگی\n"
@@ -413,7 +426,6 @@ async def welcome(update: Update, context: ContextTypes.DEFAULT_TYPE, user_profi
         [InlineKeyboardButton("🔄 تنظیم مجدد حساب", callback_data="reset_profile")],
     ]
     keyboard_layout = InlineKeyboardMarkup(keyboard)
-    canvas = "AgACAgQAAyEGAASLt5ydAAMmZ_yo0BP-GMN8Vjv7pn9FojWPr4IAAnDGMRstPuFT2ygGVy3kLJ8BAAMCAANtAAM2BA"
 
     if update.callback_query:
         await update.callback_query.edit_message_text(
@@ -424,11 +436,284 @@ async def welcome(update: Update, context: ContextTypes.DEFAULT_TYPE, user_profi
     else:
         if update.message:
             await update.message.reply_photo(
-                photo=canvas,
+                photo="AgACAgQAAyEGAASLt5ydAAMmZ_yo0BP-GMN8Vjv7pn9FojWPr4IAAnDGMRstPuFT2ygGVy3kLJ8BAAMCAANtAAM2BA",
                 caption=onboarding,
                 reply_markup=keyboard_layout,
                 parse_mode="MarkdownV2",
             )
+
+async def callbucket(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Handle callbacks profile completion"""
+    query = update.callback_query
+    await query.answer()
+
+    data = query.data
+    user_id = update.effective_user.id
+    logger.debug(f"SYSTEM:: StartHandler:: Profile callback received: {data} from user {user_id}")
+
+    async with context.db.session() as session:
+        result = await session.execute(
+            select(ProfileModel).where(ProfileModel.telegram_id == str(user_id))
+        )
+        user_profile = result.scalar_one_or_none()
+
+        if not user_profile:
+            logger.warning(f"SYSTEM:: StartHandler:: User profile not found for user_id {user_id}")
+            await query.message.reply_text(
+                markdownES(start_warning()),
+                parse_mode="MarkdownV2",
+            )
+            return
+
+        if data == "cancel_profile":
+            await query.message.reply_text(
+                markdownES(
+                    "⚠️ فرآیند تکمیل پروفایل لغو شد. هر زمان که مایل بودید می‌توانید با دستور /start مجدداً شروع کنید."
+                ),
+                parse_mode="MarkdownV2",
+            )
+            try:
+                await query.message.delete()
+            except BadRequest:
+                pass
+            return
+
+        if data.startswith("back_"):
+            if "university" in data:
+                await ask_university(update, context)
+                return
+            elif "faculty" in data:
+                university_id = (
+                    int(data.split("_")[2])
+                    if len(data.split("_")) > 2
+                    else user_profile.university_id
+                )
+                await ask_faculty(update, context, university_id)
+                return
+            elif "major" in data:
+                await ask_major(update, context, user_profile.faculty_id)
+                return
+
+        if data == "reset_profile":
+            keyboard = [
+                [
+                    InlineKeyboardButton(
+                        "✅ بله، مطمئنم", callback_data="confirm_reset"
+                    ),
+                    InlineKeyboardButton(
+                        "❌ خیر، انصراف", callback_data="cancel_reset"
+                    ),
+                ]
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+
+            if hasattr(query.message, "photo") and query.message.photo:
+                await query.edit_message_caption(
+                    caption=markdownES(
+                        "آیا از بازنشانی پروفایل خود مطمئن هستید؟ این عمل غیرقابل بازگشت است."
+                    ),
+                    reply_markup=reply_markup,
+                    parse_mode="MarkdownV2",
+                )
+            else:
+                await query.edit_message_text(
+                    markdownES(
+                        "آیا از بازنشانی پروفایل خود مطمئن هستید؟ این عمل غیرقابل بازگشت است."
+                    ),
+                    reply_markup=reply_markup,
+                    parse_mode="MarkdownV2",
+                )
+            return
+
+        if data == "confirm_reset":
+            user_profile.university_id = None
+            user_profile.university_name = None
+            user_profile.faculty_id = None
+            user_profile.faculty_name = None
+            user_profile.major_id = None
+            user_profile.major_name = None
+            user_profile.role = RoleType.STUDENT
+            user_profile.profile_completed = False
+            await session.commit()
+
+            logger.info(f"User {user_id} reset their profile")
+
+            try:
+                await query.edit_message_text(
+                    markdownES(
+                        "🔄 پروفایل شما با موفقیت بازنشانی شد. اکنون فرآیند ثبت‌نام مجدد آغاز می‌شود..."
+                    ),
+                    parse_mode="MarkdownV2",
+                )
+                await asyncio.sleep(2)
+                await query.message.delete()
+            except (BadRequest, Exception) as e:
+                logger.warning(f"Error during profile reset: {e}")
+                pass
+
+            await begin_profile(update, context, user_profile)
+            return
+        if data == "cancel_reset":
+            await welcome(update, context, user_profile)
+            return
+
+        try:
+            if data.startswith("uni_"):
+                university_id = int(data[4:])
+                uni_result = await session.execute(
+                    select(UniversityModel).where(
+                        UniversityModel.id == university_id
+                    )
+                )
+                university = uni_result.scalar_one_or_none()
+
+                if not university:
+                    logger.error(
+                        f"University with ID {university_id} not found"
+                    )
+                    await query.message.reply_text(
+                        markdownES(
+                            "⚠️ دانشگاه انتخاب شده یافت نشد. لطفاً دوباره تلاش کنید."
+                        ),
+                        parse_mode="MarkdownV2",
+                    )
+                    return
+
+                user_profile.university_id = university_id
+                user_profile.university_name = university.name
+                user_profile.faculty_id = None
+                user_profile.faculty_name = None
+                user_profile.major_id = None
+                user_profile.major_name = None
+                await session.commit()
+
+                logger.info(
+                    f"User {user_id} selected university: {university.name}"
+                )
+                await ask_faculty(update, context, university_id)
+
+            elif data.startswith("fac_"):
+                faculty_id = int(data[4:])
+                fac_result = await session.execute(
+                    select(FacultyModel).where(FacultyModel.id == faculty_id)
+                )
+                faculty = fac_result.scalar_one_or_none()
+
+                if not faculty:
+                    logger.error(f"Faculty with ID {faculty_id} not found")
+                    await query.message.reply_text(
+                        markdownES(
+                            "⚠️ دانشکده انتخاب شده یافت نشد. لطفاً دوباره تلاش کنید."
+                        ),
+                        parse_mode="MarkdownV2",
+                    )
+                    return
+
+                user_profile.faculty_id = faculty_id
+                user_profile.faculty_name = faculty.name
+                user_profile.major_id = None
+                user_profile.major_name = None
+                await session.commit()
+
+                logger.info(f"User {user_id} selected faculty: {faculty.name}")
+                await ask_major(update, context, faculty_id)
+
+            elif data.startswith("maj_"):
+                major_id = int(data[4:])
+                maj_result = await session.execute(
+                    select(MajorModel).where(MajorModel.id == major_id)
+                )
+                major = maj_result.scalar_one_or_none()
+
+                if not major:
+                    logger.error(f"Major with ID {major_id} not found")
+                    await query.message.reply_text(
+                        markdownES(
+                            "⚠️ رشته انتخاب شده یافت نشد. لطفاً دوباره تلاش کنید."
+                        ),
+                        parse_mode="MarkdownV2",
+                    )
+                    return
+
+                user_profile.major_id = major_id
+                user_profile.major_name = major.name
+                await session.commit()
+
+                logger.info(f"User {user_id} selected major: {major.name}")
+                await ask_role(update, context)
+
+            elif data.startswith("role_"):
+                role = (
+                    RoleType.STUDENT
+                    if data == "role_student"
+                    else RoleType.PROFESSOR
+                )
+                user_profile.role = role
+                user_profile.profile_completed = True
+
+                await session.execute(
+                    delete(StudentModel).where(
+                        StudentModel.profile_id == user_profile.id
+                    )
+                )
+                await session.execute(
+                    delete(ProfessorModel).where(
+                        ProfessorModel.profile_id == user_profile.id
+                    )
+                )
+
+                if role == RoleType.STUDENT:
+                    student = StudentModel(
+                        profile_id=user_profile.id,
+                        student_id=int(user_profile.telegram_id),
+                        enter_year=datetime.now().year,
+                        dormitory=False,
+                    )
+                    session.add(student)
+                    role_str = "دانشجو"
+                else:
+                    professor = ProfessorModel(
+                        profile_id=user_profile.id,
+                        position=ProfessorPosType.ADJUNCT_PROFESSOR,
+                    )
+                    session.add(professor)
+                    role_str = "استاد"
+
+                await session.commit()
+
+                await query.answer(
+                    f"🎉 پروفایل شما با نقش {role_str} با موفقیت تکمیل شد!"
+                )
+                logger.info(f"User {user_id} completed profile as {role_str}")
+
+                # Record analytics
+                try:
+                    context.bot_data.setdefault("profile_completions", 0)
+                    context.bot_data["profile_completions"] += 1
+                except Exception as e:
+                    logger.warning(f"Failed to record analytics: {e}")
+
+                await welcome(update, context, user_profile)
+
+            else:
+                logger.warning(
+                    f"Unknown callback data: {data} from user {user_id}"
+                )
+
+        except Exception as e:
+            logger.error(
+                f"Error in profile_callback_handler: {e}", exc_info=True
+            )
+            try:
+                await query.message.reply_text(
+                    markdownES(start_warning()),
+                    parse_mode="MarkdownV2",
+                )
+            except Exception:
+                pass
+
+            await begin_profile(update, context, user_profile)
+
 
 __all__ = [
     "begin",
@@ -436,5 +721,6 @@ __all__ = [
     "ask_faculty",
     "ask_major",
     "ask_role",
-    "welcome"
+    "welcome",
+    "callbucket"
     ]

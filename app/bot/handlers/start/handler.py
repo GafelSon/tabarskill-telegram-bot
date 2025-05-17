@@ -6,6 +6,7 @@ from datetime import datetime
 # dependencies lib
 from telegram.ext import ContextTypes
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from sqlalchemy import select
 
 # local lib
 from app.core.decor import effectiveUser
@@ -13,13 +14,14 @@ from app.core.log import internal_error
 from app.core.logger import logger
 from app.utils.escape import markdownES
 from app.database.models import ProfileModel, RoleType
-from .profile import start_profile_completion
+from .profile import begin_profile
 
 # config logger
 logger = logger(__name__)
 
 @effectiveUser
 async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user = update.effective_user
     try:
         welcome_message = ""
         reply_markup = None
@@ -52,7 +54,7 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 )
                 session.add(db_user)
                 await session.commit()
-                return await start_profile_completion(update, context, db_user)
+                return await begin_profile(update, context, db_user)
 
             elif not db_user.profile_completed:
                 db_user.date_updated = datetime.now()
@@ -69,7 +71,7 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 )
                 db_user.telegram_picture = photo_id
                 await session.commit()
-                return await start_profile_completion(update, context, db_user)
+                return await begin_profile(update, context, db_user)
 
             else:
                 db_user.date_updated = datetime.now()
@@ -98,8 +100,8 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                     f"    🔹 /wallet \- اعتبار کاربری\n"
                     f"    🔹 /schedule \- مشاهده برنامه هفتگی\n"
                     f"    🔹 /reminder \- یادآوری\n"
-                    f"    🔹 /groups \- جامعه دانشگاهی\n\n - دردست توسعه\.\.\."
-                    f"🛟 *آپدیت جدید \[v1\.0\] – بهبودها و ویژگی‌های تازه\!*\n"
+                    f"    🔹 /groups \- جامعه دانشگاهی\n\n"
+                    f"🛟 *آپدیت جدید \[v1\.0\] \- بهبودها و ویژگی‌های تازه\!*\n"
                     f"    ✅ ایجاد و شخصی سازی پورفایل\n"
                     f"    ✅ امکان مشاهده اعتبار کاربری\n"
                     f"    ✅ امکان مشاهده برنامه هفتگی\n"
@@ -116,11 +118,10 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 [InlineKeyboardButton("🔄 تنظیم مجدد حساب", callback_data="reset_profile")],
             ]
             keyboard_layout = InlineKeyboardMarkup(keyboard)
-            canvas = "AgACAgQAAyEGAASLt5ydAAMmZ_yo0BP-GMN8Vjv7pn9FojWPr4IAAnDGMRstPuFT2ygGVy3kLJ8BAAMCAANtAAM2BA"
 
             if update.message:
                 await update.message.reply_photo(
-                    photo=canvas,
+                    photo="AgACAgQAAyEGAASLt5ydAAMmZ_yo0BP-GMN8Vjv7pn9FojWPr4IAAnDGMRstPuFT2ygGVy3kLJ8BAAMCAANtAAM2BA",
                     caption=onboarding,
                     reply_markup=keyboard_layout,
                     parse_mode="MarkdownV2",
@@ -128,4 +129,4 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     except Exception as e:
         logger.error(f"SYSTEM:: StartHandler:: {e}", exc_info=True)
         if update.message:
-            await update.message.reply_text(internal())
+            await update.message.reply_text(internal_error())
