@@ -19,6 +19,7 @@ from .profile import begin_profile
 # config logger
 logger = logger(__name__)
 
+
 @effectiveUser
 async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user = update.effective_user
@@ -28,14 +29,14 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         db_user = None
 
         async with context.db.session() as session:
-            result = await session.execute(select(ProfileModel).where(ProfileModel.telegram_id == str(user.id)))
+            result = await session.execute(
+                select(ProfileModel).where(ProfileModel.telegram_id == str(user.id))
+            )
             db_user = result.scalar_one_or_none()
             if not db_user:
                 photos = await context.bot.get_user_profile_photos(user.id, limit=1)
                 photo_id = (
-                    photos.photos[0][0].file_id
-                    if photos and photos.photos
-                    else None
+                    photos.photos[0][0].file_id if photos and photos.photos else None
                 )
 
                 # Create new user for first intraction
@@ -61,13 +62,9 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 db_user.telegram_username = user.username or ""
                 db_user.first_name = user.first_name or ""
                 db_user.last_name = user.last_name or ""
-                photos = await context.bot.get_user_profile_photos(
-                    user.id, limit=1
-                )
+                photos = await context.bot.get_user_profile_photos(user.id, limit=1)
                 photo_id = (
-                    photos.photos[0][0].file_id
-                    if photos and photos.photos
-                    else None
+                    photos.photos[0][0].file_id if photos and photos.photos else None
                 )
                 db_user.telegram_picture = photo_id
                 await session.commit()
@@ -78,13 +75,9 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                 db_user.telegram_username = user.username or ""
                 db_user.first_name = user.first_name or ""
                 db_user.last_name = user.last_name or ""
-                photos = await context.bot.get_user_profile_photos(
-                    user.id, limit=1
-                )
+                photos = await context.bot.get_user_profile_photos(user.id, limit=1)
                 photo_id = (
-                    photos.photos[0][0].file_id
-                    if photos and photos.photos
-                    else None
+                    photos.photos[0][0].file_id if photos and photos.photos else None
                 )
                 db_user.telegram_picture = photo_id
                 await session.commit()
@@ -101,8 +94,8 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                     f"    🔹 /schedule \- مشاهده برنامه هفتگی\n"
                     f"    🔹 /reminder \- یادآوری\n"
                     f"    🔹 /groups \- جامعه دانشگاهی\n\n"
-                    f"🛟 *آپدیت جدید \[v1\.0\] \- بهبودها و ویژگی‌های تازه\!*\n"
-                    f"    ✅ ایجاد و شخصی سازی پورفایل\n"
+                    f"🛟 *آپدیت جدید \[v1\.0\.12\] \- بهبودها و ویژگی‌های تازه\!*\n"
+                    f"    ✅ ایجاد و شخصی سازی پروفایل\n"
                     f"    ✅ امکان مشاهده اعتبار کاربری\n"
                     f"    ✅ امکان مشاهده برنامه هفتگی\n"
                     f"    ✅ امکان مشاهده جامعه دانشگاهی\n"
@@ -110,12 +103,18 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                     f"    ✅ امکان مشاهده اطلاعیه‌های دانشگاه\n\n"
                     f"**>*توجه:* برای استفاده از این ربات باید در کانال انجمن ما عضو شوید\! \@acm\_nus\n"
                 )
-                logger.info(f"SYSTEM:: StartHandler:: {user.id}-{user.username} returned")
+                logger.info(
+                    f"SYSTEM:: StartHandler:: {user.id}-{user.username} returned"
+                )
 
             keyboard = [
                 [InlineKeyboardButton("🕹️ آموزش ربات دستیار", callback_data="tutorial")],
                 [InlineKeyboardButton("🪴 درباره ما", callback_data="about")],
-                [InlineKeyboardButton("🔄 تنظیم مجدد حساب", callback_data="reset_profile")],
+                [
+                    InlineKeyboardButton(
+                        "🔄 تنظیم مجدد حساب", callback_data="reset_profile"
+                    )
+                ],
             ]
             keyboard_layout = InlineKeyboardMarkup(keyboard)
 
