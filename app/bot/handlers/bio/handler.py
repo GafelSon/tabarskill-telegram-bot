@@ -8,12 +8,12 @@
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 from telegram.ext import ContextTypes
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, Message
 
 # local lib
 from app.core.log import start_warning, internal_error
 from app.core.logger import logger
-from app.core.decor import effectiveUser
+from app.core.decor import effectiveUser, message_object
 from app.utils.jalali import jcal
 from app.utils.escape import markdownES as mds
 from app.database.models import (
@@ -25,8 +25,11 @@ from app.database.models import (
 logger = logger(__name__)
 
 
+@message_object
 @effectiveUser
-async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+async def handler(
+    update: Update, context: ContextTypes.DEFAULT_TYPE, message: Message = None
+) -> None:
     user = update.effective_user
     try:
         async with context.db.session() as session:
@@ -39,7 +42,7 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             db_user = result.scalar_one_or_none()
 
             if not db_user:
-                await update.message.reply_text(start_warning())
+                await message.reply_text(start_warning())
                 return
 
             onboarding = (
@@ -82,25 +85,23 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                         "✏️ ویرایش اطلاعات", callback_data="edit_profile"
                     )
                 ],
-                [InlineKeyboardButton("💼 کیف پول", callback_data="show_status")],
-                [InlineKeyboardButton("📢 دعوت دوستان", callback_data="invite")],
+                [InlineKeyboardButton("💼 کیف پول", callback_data="show_wallet")],
+                [InlineKeyboardButton("📢 دعوت دوستان", callback_data="show_bio")],
                 [InlineKeyboardButton("❓ پشتیبانی", callback_data="support")],
             ]
             keyboard_layout = InlineKeyboardMarkup(keyboard)
 
             if db_user.telegram_picture:
-                await update.message.reply_photo(
+                await message.reply_photo(
                     photo=db_user.telegram_picture,
                     caption=onboarding,
                     parse_mode="MarkdownV2",
                     reply_markup=keyboard_layout,
                 )
             else:
-                await update.message.reply_text(
+                await message.reply_text(
                     onboarding, parse_mode="MarkdownV2", reply_markup=keyboard_layout
                 )
-
-            logger.info(f"SYSTEM:: BioHandler:: Bio requested by user: {user.id}")
     except Exception as e:
         logger.error(f"SYSTEM:: BioHandler:: Error in bio handler: {e}", exc_info=True)
-        await update.message.reply_text(internal_error())
+        await message.reply_text(internal_error())

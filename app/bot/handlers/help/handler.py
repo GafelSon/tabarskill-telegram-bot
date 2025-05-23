@@ -1,4 +1,4 @@
-# help handler finction
+# help handler function
 
 # main lib
 
