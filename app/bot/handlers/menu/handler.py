@@ -26,13 +26,15 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if await has_flag(user, context.bot_data["db"]):
         logger.info(f"User {user} accessed menu with flag privileges.")
-
         keyboard.append([KeyboardButton("💰 کیف پول"), KeyboardButton("📤 آپلود")])
+
     keyboard_layout = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
     onboarding = (
         f">*منوی اصلی*\n\n\n"
-        f"به منوی اصلی خوش آمدید\. لطفاً یکی از گزینه‌های زیر را انتخاب کنید:\."
+        f"به تالار مهارت خوش آمدید\!\n"
+        f"از منوی زیر می‌توانید به بخش‌های مختلف دسترسی پیدا کنید\.\n"
+        f"لطفاً یکی از گزینه‌ها را انتخاب نمایید:"
     )
 
     await update.message.reply_text(
