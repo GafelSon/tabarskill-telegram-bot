@@ -35,12 +35,6 @@ from app.database.models import (
     ProfileModel,
     NotificationModel,
 )
-from .new_type_event import (
-    new_university_event,
-    new_personal_event,
-)
-from .inputs import handle_event_input, image_input
-from .cancel_event import cancel_event_creation
 
 # logger config
 logger = logger(__name__)
@@ -157,6 +151,26 @@ async def _back(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
             await msg.delete()
 
         asyncio.create_task(delete_after_delay(message))
+
+
+def new_personal_event():
+    pass
+
+
+def new_university_event():
+    pass
+
+
+def handle_event_input():
+    pass
+
+
+def image_input():
+    pass
+
+
+def cancel_event_creation():
+    pass
 
 
 module = ConversationHandler(
