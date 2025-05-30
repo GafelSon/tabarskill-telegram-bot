@@ -31,51 +31,27 @@ from app.utils.jalali import jcal
 from app.database.models import (
     EventModel,
     EventType,
-    RepeatType,
     ProfileModel,
     NotificationModel,
 )
 
-# logger config
-logger = logger(__name__)
-
-(
+from .callbacks.cancel import _cancel
+from .callbacks.event_type import new_personal_event, new_university_event
+from .callbacks.event_new import new_event_callback
+from .states import EventState, EventInputHandler
+from .callbacks.event_input import input
+from .get import (
+    EVENT_TITLE,
+    EVENT_DESCRIPTION,
     EVENT_DATE,
     EVENT_TIME,
-    EVENT_TITLE,
-    EVENT_IMAGE,
     EVENT_REPEAT,
-    EVENT_NOTIFY,
-    EVENT_DESCRIPTION,
-) = range(7)
+    EVENT_IMAGE,
+    REPEAT_TYPE_MAP,
+)
 
-QUESTIONS = {
-    EVENT_TITLE: "📌 لطفاً عنوان رویداد را وارد کنید:",
-    EVENT_DESCRIPTION: "📝 لطفاً توضیحات رویداد را وارد کنید:",
-    EVENT_DATE: "📅 لطفاً تاریخ رویداد را انتخاب کنید یا به صورت YYYY/MM/DD وارد کنید:",
-    EVENT_TIME: "⏰ لطفاً ساعت رویداد را به صورت HH:MM وارد کنید:",
-    EVENT_REPEAT: "🔄 لطفاً نوع تکرار رویداد را انتخاب کنید:",
-    EVENT_NOTIFY: "🔔 لطفاً تعداد روزهای قبل از رویداد برای یادآوری را وارد کنید:",
-    EVENT_IMAGE: "🖼️ لطفاً تصویر رویداد را ارسال کنید (یا 'بدون تصویر' را بنویسید):",
-}
-
-FIELDS = {
-    EVENT_TITLE: "title",
-    EVENT_DESCRIPTION: "description",
-    EVENT_DATE: "date",
-    EVENT_TIME: "time",
-    EVENT_REPEAT: "repeat",
-    EVENT_NOTIFY: "notify_before",
-    EVENT_IMAGE: "image",
-}
-
-REPEAT_TYPE_MAP = {
-    "بدون تکرار": RepeatType.NONE.value,
-    "روزانه": RepeatType.DAILY.value,
-    "هفتگی": RepeatType.WEEKLY.value,
-    "ماهانه": RepeatType.MONTHLY.value,
-    "سالانه": RepeatType.YEARLY.value,
-}
+# logger config
+logger = logger(__name__)
 
 
 @message_object
@@ -115,8 +91,8 @@ async def handler(
     # ![TODO] make callback for this keyboard
     keyboard = [
         [
-            InlineKeyboardButton("💂‍♂️ شخصی", callback_data="..."),
-            InlineKeyboardButton("🎓 دانشگاهی", callback_data="..."),
+            InlineKeyboardButton("💂‍♂️ شخصی", callback_data="new_personal_event"),
+            InlineKeyboardButton("🎓 دانشگاهی", callback_data="new_university_event"),
             InlineKeyboardButton("🛟 راهنما", callback_data="events_help"),
         ],
         [InlineKeyboardButton("🆕 رویداد جدید", callback_data="new_event")],
@@ -153,59 +129,57 @@ async def _back(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         asyncio.create_task(delete_after_delay(message))
 
 
-def new_personal_event():
-    pass
+async def image_input(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    message = update.message
+    text = message.text if message.text else ""
 
+    if text == "بدون تصویر":
+        context.user_data["image"] = None
+        return EventState.PREVIEW.value
 
-def new_university_event():
-    pass
+    if message.photo:
+        photo = message.photo[-1]
+        context.user_data["image"] = photo.file_id
+        return EventState.PREVIEW.value
 
-
-def handle_event_input():
-    pass
-
-
-def image_input():
-    pass
-
-
-def cancel_event_creation():
-    pass
+    await message.reply_text(
+        "❌ لطفاً یک تصویر ارسال کنید یا 'بدون تصویر' را بنویسید.",
+        reply_markup=EventInputHandler.get_keyboard_for_state(EventState.IMAGE),
+    )
+    return EventState.IMAGE.value
 
 
 module = ConversationHandler(
     entry_points=[
+        CallbackQueryHandler(new_event_callback, pattern="^new_event$"),
         CallbackQueryHandler(new_personal_event, pattern="^new_personal_event$"),
         CallbackQueryHandler(new_university_event, pattern="^new_university_event$"),
     ],
     states={
-        EVENT_TITLE: [
-            MessageHandler(filters.TEXT & ~filters.COMMAND, handle_event_input)
+        EventState.TITLE.value: [
+            MessageHandler(filters.TEXT & ~filters.COMMAND, input)
         ],
-        EVENT_DESCRIPTION: [
-            MessageHandler(filters.TEXT & ~filters.COMMAND, handle_event_input)
+        EventState.DESCRIPTION.value: [
+            MessageHandler(filters.TEXT & ~filters.COMMAND, input)
         ],
-        EVENT_DATE: [
-            MessageHandler(filters.TEXT & ~filters.COMMAND, handle_event_input)
+        EventState.DATE.value: [MessageHandler(filters.TEXT & ~filters.COMMAND, input)],
+        EventState.TIME.value: [MessageHandler(filters.TEXT & ~filters.COMMAND, input)],
+        EventState.REPEAT.value: [
+            MessageHandler(filters.TEXT & ~filters.COMMAND, input)
         ],
-        EVENT_TIME: [
-            MessageHandler(filters.TEXT & ~filters.COMMAND, handle_event_input)
+        EventState.NOTIFY.value: [
+            MessageHandler(filters.TEXT & ~filters.COMMAND, input)
         ],
-        EVENT_REPEAT: [
-            MessageHandler(filters.TEXT & ~filters.COMMAND, handle_event_input)
-        ],
-        EVENT_NOTIFY: [
-            MessageHandler(filters.TEXT & ~filters.COMMAND, handle_event_input)
-        ],
-        EVENT_IMAGE: [
+        EventState.IMAGE.value: [
             MessageHandler(
                 (filters.TEXT | filters.PHOTO) & ~filters.COMMAND, image_input
             )
         ],
+        EventState.PREVIEW.value: [
+            MessageHandler(filters.TEXT & ~filters.COMMAND, input)
+        ],
     },
-    fallbacks=[
-        MessageHandler(filters.Regex("^🚫 انصراف$"), cancel_event_creation)
-    ],  # cancel_conversation
+    fallbacks=[MessageHandler(filters.Regex("^🚫 انصراف$"), _cancel)],
 )
 
-__all__ = ["module"]
+__all__ = ["module", "_back"]
