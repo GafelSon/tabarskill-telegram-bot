@@ -5,9 +5,10 @@ from fastapi import FastAPI
 
 from app.bot.init import TelegramBot
 from app.config import Config
+from app.core.logger import setup_logging
 
 # Configure logging
-Config.setup_logging()
+setup_logging()
 logger = logging.getLogger(__name__)
 
 app = FastAPI(

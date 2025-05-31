@@ -28,12 +28,3 @@ class Config:
         "TELEGRAM_WEBHOOK_URL", "https://api.telegram.org"
     )
     TELEGRAM_WEBHOOK_PATH = os.getenv("TELEGRAM_WEBHOOK_PATH", "/api")
-
-    @staticmethod
-    def setup_logging():
-        import logging
-
-        logging.basicConfig(
-            level=logging.INFO,
-            format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-        )
