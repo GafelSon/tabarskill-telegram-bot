@@ -1,10 +1,10 @@
 from .handler import handler
-from .edit_profile import start_profile_edit
+from .edit_profile import edit_profile_callback
 
 
 __all__ = [
     # main functions
     "handler",
     # other functions
-    "start_profile_edit",
+    "edit_profile_callback",
 ]
