@@ -39,6 +39,7 @@ from .callbacks.cancel import _cancel
 from .callbacks.event_type import new_personal_event, new_university_event
 from .callbacks.event_new import new_event_callback
 from .states import EventState, EventInputHandler
+from .preview import show_event_preview
 from .callbacks.event_input import input
 from .get import (
     EVENT_TITLE,
@@ -91,8 +92,8 @@ async def handler(
     # ![TODO] make callback for this keyboard
     keyboard = [
         [
-            InlineKeyboardButton("💂‍♂️ شخصی", callback_data="new_personal_event"),
-            InlineKeyboardButton("🎓 دانشگاهی", callback_data="new_university_event"),
+            InlineKeyboardButton("💂‍♂️ شخصی", callback_data="..."),
+            InlineKeyboardButton("🎓 دانشگاهی", callback_data="..."),
             InlineKeyboardButton("🛟 راهنما", callback_data="events_help"),
         ],
         [InlineKeyboardButton("🆕 رویداد جدید", callback_data="new_event")],
@@ -135,18 +136,19 @@ async def image_input(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int
 
     if text == "بدون تصویر":
         context.user_data["image"] = None
-        return EventState.PREVIEW.value
-
-    if message.photo:
+    elif message.photo:
         photo = message.photo[-1]
         context.user_data["image"] = photo.file_id
-        return EventState.PREVIEW.value
+    else:
+        await message.reply_text(
+            "❌ لطفاً یک تصویر ارسال کنید یا 'بدون تصویر' را بنویسید.",
+            reply_markup=EventInputHandler.get_keyboard_for_state(EventState.IMAGE),
+        )
+        return EventState.IMAGE.value
 
-    await message.reply_text(
-        "❌ لطفاً یک تصویر ارسال کنید یا 'بدون تصویر' را بنویسید.",
-        reply_markup=EventInputHandler.get_keyboard_for_state(EventState.IMAGE),
-    )
-    return EventState.IMAGE.value
+    await show_event_preview(update, context)
+    context.user_data["current_state"] = EventState.PREVIEW
+    return EventState.PREVIEW.value
 
 
 module = ConversationHandler(
