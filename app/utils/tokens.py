@@ -1,15 +1,23 @@
-# app.utils.tokens.py
-import logging
-from decimal import Decimal
+# Utils -> tokens module
 
+# main lib
+# .
+# .
+
+# dependencies lib
 from sqlalchemy import select
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from decimal import Decimal
 from telegram.ext import ContextTypes
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 
+# local lib
+from app.core.logger import logger
+from app.core.log import start_warning
+from app.utils.escape import markdownES as mds
 from app.database.models import ProfileModel, WalletBase
-from app.utils.escape import markdownES
 
-logger = logging.getLogger(__name__)
+# logger config
+logger = logger(__name__)
 
 
 def check_tokens(cost: float = 0.75):
@@ -19,7 +27,7 @@ def check_tokens(cost: float = 0.75):
         ):
             user = update.effective_user
             if user is None:
-                logger.error("SYSTEM: No effective user in the update")
+                logger.error("SYSTEM:: No effective user in the update")
                 return
 
             async with context.db.session() as session:
@@ -31,9 +39,7 @@ def check_tokens(cost: float = 0.75):
                 row = result.first()
 
                 if not row:
-                    await update.message.reply_text(
-                        "❌ شما هنوز ثبت‌نام نکرده‌اید. لطفا ابتدا از دستور /start استفاده کنید!"
-                    )
+                    await update.message.reply_text(start_warning())
                     return
 
                 db_user, wallet = row
@@ -42,7 +48,7 @@ def check_tokens(cost: float = 0.75):
                     keyboard = [
                         [
                             InlineKeyboardButton(
-                                "💳 افزایش اعتبار", callback_data="/tokens"
+                                "💳 افزایش اعتبار", callback_data="/wallet"
                             )
                         ]
                     ]
@@ -50,8 +56,8 @@ def check_tokens(cost: float = 0.75):
                     await update.message.reply_text(
                         f">موجودی ناکافی\!\n\n\n"
                         f"🔔 دانجشوی عزیز، برای استفاده از این امکان، اعتبار کافی ندارید\.\n\n"
-                        f"    💰 *اعتبار مورد نیاز:* {markdownES(str(cost))} *قرون*\n"
-                        f"    👛 *موجودی شما:* {markdownES(str(wallet.token))} *قرون*\n\n"
+                        f"    💰 *اعتبار مورد نیاز:* {mds(str(cost))} *قرون*\n"
+                        f"    👛 *موجودی شما:* {mds(str(wallet.token))} *قرون*\n\n"
                         f"➕ میتوانید با دستور /wallet اطلاعات کیف پول خود را مشاهده کنید\.\n\n"
                         f"> 💸 در این سرویس، پس از هر استفاده، هزینه از کیف پول شما کسر می‌شود\. برای افزایش اعتبار، روی دکمه زیر کلیک کنید:",
                         parse_mode="MarkdownV2",
