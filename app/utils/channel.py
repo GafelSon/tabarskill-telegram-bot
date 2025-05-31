@@ -1,19 +1,22 @@
-# app.utils.channel.py
+# Utils -> channel module
+
+# main lib
 import os
 from functools import wraps
 
+# dependencies lib
+from telegram.ext import ContextTypes, ConversationHandler
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
-from telegram.ext import ContextTypes
 
-# Define the channel username
+# local lib
+from app.core.log import channel_warning
+
+# Define the ID
 channel = os.getenv("CHANNEL_USERNAME", "@gafelson")
 archive = os.getenv("ARCHIVE_USERNAME", "@tabarskill_archive")
 
 
-# Define the channel membership check function
-async def check_channel_membership(
-    update: Update, context: ContextTypes.DEFAULT_TYPE
-):
+async def check_channel_membership(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         user = update.effective_user
         chat_member = await context.bot.get_chat_member(
@@ -24,16 +27,15 @@ async def check_channel_membership(
         return False
 
 
-# Define the channel membership required decorator
 def require_channel_membership(func):
     @wraps(func)
     async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE):
-        message = (
-            ">خطای عدم عضویت در کانال\n"
-            "🌟 دانشجوی محترم، خوش آمدید\! 🌟\n\n"
-            "⚠️ برای دسترسی به تمامی امکانات و خدمات ربات، لطفاً ابتدا در کانال رسمی دانشگاه عضو شوید\.\n\n"
-            "🔥 __پس از عضویت، به راحتی می‌توانید از تمامی قابلیت‌ها و خدمات اختصاصی ربات استفاده کنید\!__\n\n"
-            ">تظرتون هستیم و از شما استقبال می‌کنیم\! 🚀\n"
+        onboarding = (
+            f">خطای عدم عضویت در کانال\n"
+            f"🌟 دانشجوی محترم، خوش آمدید\! 🌟\n\n"
+            f"⚠️ برای دسترسی به تمامی امکانات و خدمات ربات، لطفاً ابتدا در کانال رسمی دانشگاه عضو شوید\.\n\n"
+            f"🔥 __پس از عضویت، به راحتی می‌توانید از تمامی قابلیت‌ها و خدمات اختصاصی ربات استفاده کنید\!__\n\n"
+            f">تظرتون هستیم و از شما استقبال می‌کنیم\! 🚀\n"
         )
 
         keyboard = [
@@ -42,31 +44,34 @@ def require_channel_membership(func):
                     "🎫 عضویت در کانال", url=f"https://t.me/{channel[1:]}"
                 )
             ],
-            [
-                InlineKeyboardButton(
-                    "✅ عضو شدم", callback_data="check_membership"
-                )
-            ],
+            [InlineKeyboardButton("✅ عضو شدم", callback_data="check_membership")],
         ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
+        keyboard_layout = InlineKeyboardMarkup(keyboard)
 
         if not await check_channel_membership(update, context):
-            await update.message.reply_text(
-                text=message,
-                reply_markup=reply_markup,
-                parse_mode="MarkdownV2",
-                disable_web_page_preview=True,
-            )
-            return
+            if update.callback_query:
+                await update.callback_query.message.reply_text(
+                    text=onbording,
+                    reply_markup=keyboard_layout,
+                    parse_mode="MarkdownV2",
+                    disable_web_page_preview=True,
+                )
+            else:
+                await update.message.reply_text(
+                    text=onboarding,
+                    reply_markup=keyboard_layout,
+                    parse_mode="MarkdownV2",
+                    disable_web_page_preview=True,
+                )
+            return ConversationHandler.END
+        if isinstance(func, ConversationHandler):
+            return func
         return await func(update, context)
 
     return wrapper
 
 
-# Define the channel membership check callback
-async def check_membership_callback(
-    update: Update, context: ContextTypes.DEFAULT_TYPE
-):
+async def check_membership_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
 
@@ -74,6 +79,6 @@ async def check_membership_callback(
         await query.message.edit_text("🎟️ عضویت شما با موفقیت تایید شد!\n")
     else:
         await query.answer(
-            "🪃 هنوز عضو کانال نشده‌اید!\n" "لطفاً ابتدا در کانال عضو شوید.",
+            channel_warning(),
             show_alert=True,
         )
