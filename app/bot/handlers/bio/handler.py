@@ -45,6 +45,14 @@ async def handler(
                 await message.reply_text(start_warning())
                 return
 
+            is_support = await session.execute(
+                select(ProfileModel).where(
+                    ProfileModel.support == True,
+                    ProfileModel.faculty_name == db_user.faculty_name,
+                )
+            )
+            support_users = is_support.scalars().all()
+
             onboarding = (
                 f">پروفایل {'دانشجویی' if db_user.role == RoleType.STUDENT else 'استادی'}\n"
                 f"\n\n🔸 *‍نام کاربری*: \@{mds(db_user.telegram_username or 'کاربر جدید')}\n\n"
@@ -74,10 +82,27 @@ async def handler(
                 f"💎 *تاریخچه:*\n"
                 f"    📅 تاریخ ثبت‌نام: {mds(jcal.format(jcal.tab(db_user.date_created), date_only=True))}\n"
                 f"    ⏱️ آخرین فعالیت: {mds(jcal.format(jcal.tab(db_user.date_updated)) if db_user.date_updated else '—')}\n\n"
-                f"**>[چرا برای دستیار دانشگاهی اشتراک ويژه نیاز است؟**](tg://user?id=5455523252)\n\n"
-                f"**>[راهنمای استفاده از ربات دستیار**](tg://user?id=5455523252)\n\n"
-                f"**>[دسترسی به پشتیبانی فنی ربات دستیار**](tg://user?id=5455523252)\n"
+                f"**> [چرا برای دستیار دانشگاهی اشتراک ويژه نیاز است؟**](tg://user?id=5455523252)\n\n"
+                f"**> [راهنمای استفاده از ربات دستیار**](tg://user?id=5455523252)\n\n"
+                f"**> [دسترسی به پشتیبانی فنی ربات دستیار**](tg://user?id=5455523252)\n\n"
             )
+
+            support_button = None
+            if support_users:
+                first_support = support_users[0]
+                onboarding += "\n👨‍💼 *پشتیبان دانشکده شما:*\n"
+                for support_user in support_users:
+                    onboarding += f"[ • ] [{mds(support_user.first_name or support_user.telegram_username)}](https://t.me/{support_user.telegram_username})\n"
+                support_button = InlineKeyboardButton(
+                    "❓ پشتیبانی",
+                    url=f"https://t.me/{first_support.telegram_username}",
+                )
+            else:
+                onboarding += "\n❌ *پشتیبان فعالی برای دانشکده شما یافت نشد\.*\n"
+                support_button = InlineKeyboardButton(
+                    "❓ پشتیبانی",
+                    url="https://t.me/gafelson",
+                )
 
             keyboard = [
                 [
@@ -87,7 +112,7 @@ async def handler(
                 ],
                 [InlineKeyboardButton("💼 کیف پول", callback_data="show_wallet")],
                 [InlineKeyboardButton("📢 دعوت دوستان", callback_data="show_bio")],
-                [InlineKeyboardButton("❓ پشتیبانی", callback_data="support")],
+                [support_button],
             ]
             keyboard_layout = InlineKeyboardMarkup(keyboard)
 

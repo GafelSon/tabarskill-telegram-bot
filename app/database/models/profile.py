@@ -38,6 +38,7 @@ class ProfileModel(Base):
 
     # This is for make user to support access
     flag = Column(Boolean, nullable=False, default=False)
+    support = Column(Boolean, nullable=False, default=False)
     profile_completed = Column(Boolean, nullable=False, default=False)
 
     date_created = Column(DateTime, nullable=False, server_default=func.now())
@@ -46,12 +47,8 @@ class ProfileModel(Base):
     wallet = relationship("WalletBase", back_populates="profile", uselist=False)
     transactions = relationship("TransactionModel", back_populates="profile")
 
-    student = relationship(
-        "StudentModel", back_populates="profile", uselist=False
-    )
-    professor = relationship(
-        "ProfessorModel", back_populates="profile", uselist=False
-    )
+    student = relationship("StudentModel", back_populates="profile", uselist=False)
+    professor = relationship("ProfessorModel", back_populates="profile", uselist=False)
     # Keep the relationship as is
     university = relationship(
         "UniversityModel", back_populates="profiles", uselist=False
@@ -63,9 +60,7 @@ class ProfileModel(Base):
 
     @property
     def meta_(self):
-        return {
-            "date": {"created": self.date_created, "updated": self.date_updated}
-        }
+        return {"date": {"created": self.date_created, "updated": self.date_updated}}
 
 
 @listens_for(ProfileModel, "after_insert")
