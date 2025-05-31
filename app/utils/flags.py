@@ -17,7 +17,7 @@ from app.database.models.profile import ProfileModel
 
 # Track failed attempts by user
 _failed_attempts = defaultdict(int)
-_last_attempt_time = defaultdict(datetime.now)
+_last_attempt_time = defaultdict(dt.now)
 
 
 def require_flag(func):
@@ -25,9 +25,9 @@ def require_flag(func):
     async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_id = str(update.effective_user.id)
 
-        if datetime.now() - _last_attempt_time[user_id] > timedelta(hours=1):
+        if dt.now() - _last_attempt_time[user_id] > timedelta(hours=1):
             _failed_attempts[user_id] = 0
-        _last_attempt_time[user_id] = datetime.now()
+        _last_attempt_time[user_id] = dt.now()
 
         async with context.bot_data["db"].session() as session:
             result = await session.execute(
