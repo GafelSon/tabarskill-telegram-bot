@@ -52,6 +52,12 @@ def accessibility_error() -> str:
     return f"[ {Emoji.ERROR} ] {text}"
 
 
+def channel_warning() -> str:
+    """Channel error message"""
+    text = "هنوز عضو کانال نشده‌اید! لطفاً ابتدا در کانال عضو شوید."
+    return f"[ {Emoji.WARNING} ] {text}"
+
+
 def cancel_alert(func) -> str:
     """Cencel Warning message (Fn)"""
     text = f"عملیات {func} لغو شد"
