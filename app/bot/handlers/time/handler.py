@@ -66,7 +66,7 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         if today_holidays:
             holidays_text = "\n".join(
                 [
-                    f"🔸 {mds(h['title'])}" + (" (تعطیل)" if h["is_holiday"] else "")
+                    f"🔸 {mds(h['title'])}" + (" \(تعطیل\)" if h["is_holiday"] else "")
                     for h in today_holidays
                 ]
             )
