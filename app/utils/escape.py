@@ -1,3 +1,11 @@
+# markdown text converter
+# .
+# Markdown text escape utilities for Telegram bot messages.
+# This module provides functions to escape special characters for safe Telegram message formatting.
+# .
+# .
+
+
 def markdownES(text):
     special_chars = [
         "_",
