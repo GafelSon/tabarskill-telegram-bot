@@ -25,7 +25,7 @@ def require_flag(func):
     async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE):
         user_id = str(update.effective_user.id)
 
-        if dt.now() - _last_attempt_time[user_id] > timedelta(hours=1):
+        if dt.now() - _last_attempt_time[user_id] > tt(hours=1):
             _failed_attempts[user_id] = 0
         _last_attempt_time[user_id] = dt.now()
 
