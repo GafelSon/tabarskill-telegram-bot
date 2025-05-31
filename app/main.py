@@ -1,14 +1,32 @@
-import logging
+from warnings import filterwarnings
+from telegram.warnings import PTBUserWarning
 
+filterwarnings(
+    action="ignore", message=r".*CallbackQueryHandler", category=PTBUserWarning
+)
+
+"""
++------+.      +------+       +------+       +------+      .+------+
+|`.    | `.    |\     |\      |      |      /|     /|    .' |    .'|
+|  `+--+---+   | +----+-+     +------+     +-+----+ |   +---+--+'  |
+|   |  |   |   | |    | |     |      |     | |    | |   |   |  |   |
++---+--+.  |   +-+----+ |     +------+     | +----+-+   |  .+--+---+
+ `. |    `.|    \|     \|     |      |     |/     |/    |.'    | .'
+   `+------+     +------+     +------+     +------+     +------+'
+"""
+
+# library
+import logging
 import aiohttp
 from fastapi import FastAPI
 
-from app.bot.init import TelegramBot
 from app.config import Config
-from app.core.logger import setup_logging
+from app.core.logger import setup
+from app.bot.init import TelegramBot
 
-# Configure logging
-setup_logging()
+# logger setup
+setup()  # from logger
+
 logger = logging.getLogger(__name__)
 
 app = FastAPI(
@@ -24,7 +42,7 @@ bot = TelegramBot()
 async def startup_event():
     try:
         await bot.start()
-        logger.info("SYSTEM: Bot started successfully.")
+        logger.info("SYSTEM:: Bot started successfully.")
     except aiohttp.ClientError:
         logger.error("SYSTEM: Bot failed to start due to network error")
         raise
@@ -40,10 +58,10 @@ async def shutdown_event():
             await bot.app.updater.stop()
         await bot.app.stop()
         await bot.app.shutdown()
-        logger.info("SYSTEM: Bot hutdown successfully.")
-        logger.info("SYSTEM: Bye! > Stop terminal with Ctrl+C")
+        logger.info("SYSTEM:: Bot hutdown successfully.")
+        logger.info("SYSTEM:: Stop terminal with Ctrl+C")
     except Exception as e:
-        logger.error(f"SYSTEM: Error during bot shutdown: {str(e)}")
+        logger.error(f"SYSTEM:: Error during bot shutdown: {str(e)}")
         try:
             # Force shutdown
             await bot.app.shutdown()
@@ -52,6 +70,6 @@ async def shutdown_event():
 
 
 # Include API routes
-from app.api.endpoints import router  # noqa: E402
+from app.api.endpoints import router
 
 app.include_router(router)
