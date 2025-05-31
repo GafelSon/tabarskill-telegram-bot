@@ -1,9 +1,11 @@
 # Services - iran holiday
 
 # main lib
+import os
 import json
 import aiohttp
 import asyncio
+from dotenv import load_dotenv
 from datetime import datetime, timedelta
 
 # local lib
