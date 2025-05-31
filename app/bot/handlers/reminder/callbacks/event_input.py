@@ -46,7 +46,7 @@ async def input(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
             context.user_data["edit_message"] = await update.message.reply_text(
                 EventInputHandler.QUESTIONS[EventState.IMAGE],
                 reply_markup=EventInputHandler.get_keyboard_for_state(EventState.IMAGE),
-                parse_mode="MarkdownV2",
+                parse_mode="Markdown",
             )
             context.user_data["current_state"] = EventState.IMAGE
             return EventState.IMAGE.value
@@ -60,7 +60,7 @@ async def input(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
                 + "\n\n"
                 + EventInputHandler.QUESTIONS[EventState.PREVIEW],
                 reply_markup=EventInputHandler.get_preview_keyboard(),
-                parse_mode="MarkdownV2",
+                parse_mode="Markdown",
             )
             context.user_data["current_state"] = EventState.PREVIEW
             return EventState.PREVIEW.value
@@ -68,7 +68,7 @@ async def input(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
         context.user_data["edit_message"] = await update.message.reply_text(
             EventInputHandler.QUESTIONS[next_state],
             reply_markup=EventInputHandler.get_keyboard_for_state(next_state),
-            parse_mode="MarkdownV2",
+            parse_mode="Markdown",
         )
         context.user_data["current_state"] = next_state
         return next_state.value
