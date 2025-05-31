@@ -47,6 +47,7 @@ Thumbs.db
 
 # Project specific
 bot.db
+file.json
 
 # Distribution / packaging
 .Python
