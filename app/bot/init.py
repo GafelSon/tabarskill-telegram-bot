@@ -55,7 +55,7 @@ class TelegramBot:
 
                 await self.app.start()
                 await self.app.updater.start_polling(
-                    allowed_updates=["message", "callback_query"]
+                    allowed_updates=["message", "callback_query", "inline_query"]
                 )
 
                 logger.info("🚀 Bot successfully started.")

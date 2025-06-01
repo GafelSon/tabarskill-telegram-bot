@@ -26,7 +26,7 @@ async def handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if await has_flag(user, context.bot_data["db"]):
         logger.info(f"User {user} accessed menu with flag privileges.")
-        keyboard.append([KeyboardButton("💰 کیف پول"), KeyboardButton("📤 آپلود")])
+        keyboard.append([KeyboardButton("📤 آپلود")])
 
     keyboard_layout = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
 
